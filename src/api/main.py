@@ -16,6 +16,7 @@ from src.api.routes.ocr_routes import router as ocr_router
 from src.api.routes.incident_routes import router as incident_router
 from src.api.routes.copilot_routes import router as copilot_router
 from src.api.routes.wells_routes import router as wells_router
+from src.api.routes.ingest_routes import router as ingest_router
 from src.layer4_knowledge_graph.db_service import db_service
 
 
@@ -36,7 +37,7 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,6 +48,7 @@ app.include_router(ocr_router, prefix="/api/v1")
 app.include_router(incident_router, prefix="/api/v1")
 app.include_router(copilot_router, prefix="/api/v1")
 app.include_router(wells_router, prefix="/api/v1")
+app.include_router(ingest_router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["System"])

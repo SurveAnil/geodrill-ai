@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   UploadCloud,
   FileText,
@@ -13,34 +13,72 @@ import {
 } from 'lucide-react';
 
 type StepStatus = 'idle' | 'running' | 'completed';
+type UploadStatus = 'idle' | 'uploading' | 'processing' | 'success' | 'error';
+
+const API_ENDPOINT = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/ingest-document`;
+const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.las', '.witsml'];
 
 export const SmartIngestionStudio: React.FC = () => {
   const [pipelineStep, setPipelineStep] = useState<number>(0); // 0: idle, 1: upload, 2: OCR/NER, 3: KG
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus>('idle');
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const simulateIngestion = (fileName = 'wcr_volve_15_9_f11b.pdf') => {
+  const isProcessing = uploadStatus === 'uploading' || uploadStatus === 'processing';
+
+  const handleFileUpload = async (file: File) => {
     if (isProcessing) return;
-    setIsProcessing(true);
-    setSelectedFileName(fileName);
-    setPipelineStep(1);
 
-    // Step 1: Upload (0.8s)
-    setTimeout(() => {
+    const extension = `.${file.name.split('.').pop()?.toLowerCase() || ''}`;
+    if (!ALLOWED_EXTENSIONS.includes(extension)) {
+      setUploadStatus('error');
+      setErrorMessage('Unsupported file type. Please upload a PDF, DOCX, LAS, or WITSML file.');
+      return;
+    }
+
+    setErrorMessage(null);
+    setSelectedFileName(file.name);
+    setPipelineStep(1);
+    setUploadStatus('uploading');
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(API_ENDPOINT, { method: 'POST', body: formData });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null) as { detail?: string } | null;
+        throw new Error(body?.detail || `Upload failed (${response.status}).`);
+      }
       setPipelineStep(2);
-      // Step 2: OCR & NER Extraction (1.2s)
-      setTimeout(() => {
-        setPipelineStep(3);
-        // Step 3: Knowledge Graph Ingestion (1.0s)
-        setTimeout(() => {
-          setIsProcessing(false);
-        }, 1000);
-      }, 1200);
-    }, 800);
+      setUploadStatus('processing');
+      await response.json();
+      setPipelineStep(3);
+      setUploadStatus('success');
+    } catch (error) {
+      setUploadStatus('error');
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to upload the document.');
+    }
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) void handleFileUpload(file);
+    event.target.value = '';
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
+    if (file) void handleFileUpload(file);
   };
 
   const getStepStatus = (stepIndex: number): StepStatus => {
-    if (pipelineStep > stepIndex || (pipelineStep === 3 && !isProcessing)) return 'completed';
+    if (uploadStatus === 'error') {
+      return pipelineStep > stepIndex ? 'completed' : 'idle';
+    }
+    if (pipelineStep > stepIndex || (pipelineStep === 3 && uploadStatus === 'success')) return 'completed';
     if (pipelineStep === stepIndex && isProcessing) return 'running';
     return 'idle';
   };
@@ -62,7 +100,7 @@ export const SmartIngestionStudio: React.FC = () => {
         </div>
 
         <button
-          onClick={() => simulateIngestion()}
+          onClick={() => fileInputRef.current?.click()}
           disabled={isProcessing}
           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold font-mono transition-all ${
             isProcessing
@@ -78,7 +116,7 @@ export const SmartIngestionStudio: React.FC = () => {
           ) : (
             <>
               <Sparkles className="w-3 h-3 text-cyan-300" />
-              <span>Run Sample Data</span>
+              <span>Select Document</span>
             </>
           )}
         </button>
@@ -86,7 +124,9 @@ export const SmartIngestionStudio: React.FC = () => {
 
       {/* Drag & Drop Zone */}
       <div
-        onClick={() => simulateIngestion()}
+        onClick={() => fileInputRef.current?.click()}
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={handleDrop}
         className="group relative border-2 border-dashed border-slate-700 hover:border-cyan-500/80 rounded-xl p-3.5 bg-[#0A101D]/70 hover:bg-[#0E1626]/80 transition-all cursor-pointer text-center flex flex-col items-center justify-center gap-1.5"
       >
         <div className="h-8 w-8 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center text-cyan-400 group-hover:scale-110 group-hover:bg-cyan-950/80 transition-all">
@@ -98,11 +138,19 @@ export const SmartIngestionStudio: React.FC = () => {
         <p className="text-[10px] font-mono text-slate-400">
           Accepts PDF, DOCX, LAS, WITSML • Auto Digital / OCR Parsing
         </p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept=".pdf,.docx,.las,.witsml"
+          onChange={handleFileChange}
+        />
         {selectedFileName && (
           <span className="mt-1 px-2 py-0.5 rounded bg-cyan-950/90 text-cyan-300 border border-cyan-800/70 text-[10px] font-mono">
             Active Doc: {selectedFileName}
           </span>
         )}
+        {errorMessage && <p className="mt-1 text-[10px] text-rose-300">{errorMessage}</p>}
       </div>
 
       {/* Extraction Pipeline Stepper */}
@@ -110,13 +158,17 @@ export const SmartIngestionStudio: React.FC = () => {
         <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mb-2">
           <span>PIPELINE ORCHESTRATION</span>
           <span className="text-cyan-400">
-            {pipelineStep === 0
+            {uploadStatus === 'error'
+              ? 'Error'
+              : uploadStatus === 'success'
+              ? 'Complete'
+              : pipelineStep === 0
               ? 'Standby'
               : pipelineStep === 1
-              ? 'Stage 1/3: Document Ingestion'
+              ? 'Uploading'
               : pipelineStep === 2
-              ? 'Stage 2/3: LLM Entity Extraction'
-              : 'Stage 3/3: Graph Store Complete'}
+              ? 'Processing OCR'
+              : 'Success'}
           </span>
         </div>
 
