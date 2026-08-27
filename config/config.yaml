@@ -1,0 +1,33 @@
+app:
+  name: "GeoDrill AI"
+  version: "1.0.0"
+  environment: "development"
+
+database:
+  sqlite_path: "data/geodrill.db"
+
+ingestion:
+  min_chars_per_page_digital: 40
+  enable_table_extraction: true
+
+llm:
+  default_provider: "anthropic"
+  fallback_enabled: true
+  anthropic:
+    model: "claude-sonnet-4-6"
+    max_tokens: 4000
+    temperature: 0.0
+  groq:
+    model: "llama-3.3-70b-versatile"
+    max_tokens: 4000
+    temperature: 0.0
+  openai:
+    model: "gpt-4o-mini"
+    max_tokens: 4000
+    temperature: 0.0
+  gemini:
+    model: "gemini-1.5-flash"
+    temperature: 0.0
+
+correlation:
+  default_depth_window_m: 100.0
