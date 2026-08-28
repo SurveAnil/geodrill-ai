@@ -9,9 +9,10 @@ const ACTIVE_RIG_COORDS: [number, number] = [16.245, 82.352];
 
 interface WellMapProps {
   selectedWell?: OffsetWellItem | null;
+  wells?: OffsetWellItem[];
 }
 
-export const WellMap: React.FC<WellMapProps> = ({ selectedWell }) => {
+export const WellMap: React.FC<WellMapProps> = ({ selectedWell, wells = OFFSET_WELLS }) => {
   return (
     <div className="w-full h-full min-h-[260px] relative rounded-lg overflow-hidden border border-slate-800 bg-[#090D16]">
       <MapContainer
@@ -74,7 +75,7 @@ export const WellMap: React.FC<WellMapProps> = ({ selectedWell }) => {
         </CircleMarker>
 
         {/* Offset Wells */}
-        {OFFSET_WELLS.map((well) => {
+        {wells.map((well) => {
           const isSelected = selectedWell?.id === well.id;
           const color =
             well.status === 'critical'

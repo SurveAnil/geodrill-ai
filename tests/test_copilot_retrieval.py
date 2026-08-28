@@ -20,7 +20,7 @@ from src.layer4_knowledge_graph.db_service import DatabaseService, db_service
 from src.layer4_knowledge_graph.vector_store import VectorStore, vector_store
 from src.layer4_knowledge_graph.hybrid_retriever import HybridRetriever, retriever
 from src.layer1_ingestion.document_pipeline import DocumentPipeline, pipeline
-from src.layer5_copilot.tools import answer_with_citations
+from src.layer5_copilot.tools import answer_with_citations, validate_citations
 from tests.generate_test_reports import generate_all_samples
 
 
@@ -149,6 +149,12 @@ def test_out_of_scope_query_returns_insufficient_information(integrated_environm
     synthesis = answer_with_citations(query=query, retrieved_events=[])
     assert "Insufficient information" in synthesis["answer"]
     assert len(synthesis["sources"]) == 0
+
+
+def test_citation_validation_rejects_unretrieved_source():
+    event = {"well_id": "W-1", "source_doc": "report.pdf", "source_page": 2}
+    assert validate_citations("[Well W-1, report.pdf, p. 2]", [event])
+    assert not validate_citations("[Well W-2, report.pdf, p. 2]", [event])
 
 
 def test_copilot_search_api_endpoint(integrated_environment):

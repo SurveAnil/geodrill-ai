@@ -28,6 +28,7 @@ export interface RiskState {
   predictedHazard: string;
   immediateAction: string;
   offsetWellCitation: string;
+  alertId?: string;
 }
 
 interface DrillStore {
@@ -47,6 +48,7 @@ interface DrillStore {
   isStreaming10Hz: boolean;
   selectedScenario: ScenarioType;
   simulationTickCount: number;
+  backendStatus: 'demo' | 'online' | 'unavailable';
 
   // Actions
   setDepth: (md: number) => void;
@@ -56,6 +58,8 @@ interface DrillStore {
   toggle10HzStream: () => void;
   setActiveWell: (wellId: string) => void;
   stepSimulation: () => void;
+  setRisk: (risk: RiskState) => void;
+  setBackendStatus: (status: DrillStore['backendStatus']) => void;
 }
 
 export const SCENARIO_PRESETS: Record<
@@ -179,6 +183,7 @@ export const useDrillStore = create<DrillStore>((set, get) => ({
   isStreaming10Hz: true,
   selectedScenario: 'approaching_hugin_losses',
   simulationTickCount: 0,
+  backendStatus: 'demo',
 
   setDepth: (md: number) =>
     set((state) => ({
@@ -239,4 +244,6 @@ export const useDrillStore = create<DrillStore>((set, get) => ({
       },
     });
   },
+  setRisk: (risk) => set({ risk }),
+  setBackendStatus: (backendStatus) => set({ backendStatus }),
 }));

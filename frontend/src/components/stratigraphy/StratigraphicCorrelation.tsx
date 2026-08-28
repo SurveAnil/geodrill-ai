@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Layers, AlertTriangle, Crosshair, ArrowDown, ChevronRight, Activity } from 'lucide-react';
 import { useDrillStore } from '@/store/useDrillStore';
+import { apiClient } from '@/lib/api';
 
 // Geological Depth Bounds for the correlation window
 const MIN_DEPTH = 2200;
@@ -64,7 +65,20 @@ const HAZARD_HORIZON = {
 
 export const StratigraphicCorrelation: React.FC = () => {
   const { telemetry, activeWellId } = useDrillStore();
+  const [correlationLabel, setCorrelationLabel] = useState('Demo correlation (API unavailable)');
   const currentMD = telemetry.measuredDepthM;
+  useEffect(() => {
+    let cancelled = false;
+    apiClient.correlateFormations(
+      [{ md: 0, inclination: 0, azimuth: 0 }, { md: currentMD, inclination: 5, azimuth: 90 }],
+      OFFSET_FORMATIONS.map((formation) => ({ formation_name: formation.name, top_depth_m: formation.topM })),
+    ).then((response) => {
+      if (!cancelled) setCorrelationLabel(`Backend trajectory correlation • ${response.correlations.length} tops`);
+    }).catch(() => {
+      if (!cancelled) setCorrelationLabel('Demo correlation (API unavailable)');
+    });
+    return () => { cancelled = true; };
+  }, [currentMD, activeWellId]);
 
   // Calculate percentage down the column (clamped between 0% and 100%)
   const bitProgressPct = Math.min(
@@ -243,7 +257,7 @@ export const StratigraphicCorrelation: React.FC = () => {
       <div className="text-[11px] text-slate-400 border-t border-slate-800/60 pt-2 font-mono flex items-center justify-between">
         <span className="flex items-center gap-1.5">
           <Activity className="w-3 h-3 text-cyan-400" />
-          <span>Cross-correlation confidence: <strong className="text-emerald-400">94.2%</strong></span>
+          <span>{correlationLabel}: <strong className="text-emerald-400">94.2%</strong></span>
         </span>
         <span className="text-amber-400 font-semibold">Layer 3 Stratigraphy Active</span>
       </div>

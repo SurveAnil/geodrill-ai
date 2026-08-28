@@ -113,3 +113,18 @@ def test_similarity_search_empty_query_and_empty_store(ephemeral_vector_store):
     store = ephemeral_vector_store
     assert store.similarity_search("") == []
     assert store.similarity_search("any incident") == []
+
+
+def test_similarity_threshold_and_normalized_formation_filter(ephemeral_vector_store):
+    event = DrillingEvent(
+        well_id="W-1", event_type=EventType.MUD_LOSS, formation="Hugin Formation",
+        description="Mud loss recorded.",
+    )
+    ephemeral_vector_store.embed_and_upsert(event, event_id=1)
+    assert ephemeral_vector_store.similarity_search(
+        "mud loss", formation=        " hugin   formation ", min_similarity=1.1
+    ) == []
+    results = ephemeral_vector_store.similarity_search(
+        "mud loss", formation=" hugin   formation "
+    )
+    assert results and results[0]["source_section"] is None

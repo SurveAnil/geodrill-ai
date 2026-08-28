@@ -16,6 +16,7 @@ Scope Clarification:
 from __future__ import annotations
 
 import logging
+import shutil
 from typing import Optional
 from src.api.schemas.document_schemas import IngestResult, ExtractionMethod
 
@@ -29,14 +30,18 @@ class OCREngine:
     """
 
     def __init__(self, tesseract_cmd: Optional[str] = None):
-        self.tesseract_cmd = tesseract_cmd
+        self.tesseract_cmd = tesseract_cmd or shutil.which("tesseract")
+
+    @property
+    def available(self) -> bool:
+        return bool(self.tesseract_cmd)
 
     def should_route_to_ocr(self, ingest_result: IngestResult) -> bool:
         """
         Stage 1 Guardrail: Determines if the document is scanned / image-based
         and requires OCR/VLM processing rather than native text parsing.
         """
-        return not ingest_result.is_digital_native
+        return bool(ingest_result.scanned_pages) or not ingest_result.is_digital_native
 
     def process_scanned_document(self, ingest_result: IngestResult) -> IngestResult:
         """
@@ -45,6 +50,10 @@ class OCREngine:
         In Stage 3, executes vision model / OCR engine to extract text from page bitmaps.
         """
         logger.info("Routing document %s to OCR/VLM engine (Stage 1 Guardrail)", ingest_result.file_path)
+        if not self.available:
+            ingest_result.warnings.append(
+                "OCR dependency unavailable; document requires manual review or configured VLM."
+            )
         ingest_result.warnings.append(
             "Document classified as scanned/image-based. Stage 1 routes to review queue; "
             "Stage 3 vision pipeline will provide OCR text extraction."

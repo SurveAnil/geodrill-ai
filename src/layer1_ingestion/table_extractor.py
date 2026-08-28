@@ -22,9 +22,16 @@ def format_tables_as_text(page: PageContent) -> str:
     for t_idx, table in enumerate(page.tables, start=1):
         out.append(f"  [Table {t_idx} on page {page.page_number}]")
         for row in table:
-            clean_row = [c.strip() if c else "" for c in row]
+            clean_row = [str(c).strip() if c else "" for c in row]
             out.append("    | " + " | ".join(clean_row) + " |")
     return "\n".join(out)
+
+
+def format_document_tables_as_text(pages: List[PageContent]) -> str:
+    """Format every extracted table while retaining page/table provenance."""
+    return "\n\n".join(
+        formatted for page in pages if (formatted := format_tables_as_text(page))
+    )
 
 
 def extract_key_value_pairs(tables: List[List[List[Optional[str]]]]) -> dict[str, str]:

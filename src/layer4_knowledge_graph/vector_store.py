@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from typing import Any, Dict, List, Optional, Union
 import chromadb
 from chromadb.api import ClientAPI
@@ -24,6 +25,11 @@ DEFAULT_CHROMA_PATH = os.path.join(
     "chroma_db",
 )
 COLLECTION_NAME = "drilling_events"
+
+
+def normalize_metadata_value(value: Any) -> str:
+    """Canonical form used for metadata matching (without changing source values)."""
+    return re.sub(r"\s+", " ", str(value or "")).strip().casefold()
 
 
 def build_event_text(event: DrillingEvent) -> str:
@@ -74,6 +80,7 @@ class VectorStore:
         source_doc: str = "",
         source_page: Optional[int] = None,
         source_snippet: Optional[str] = None,
+        source_section: Optional[str] = None,
     ) -> None:
         """
         Embeds the constructed event text and upserts it into the Chroma collection
@@ -93,6 +100,9 @@ class VectorStore:
             "source_doc": str(source_doc or ""),
             "source_page": int(source_page) if source_page is not None else int(event.source_page or 0),
             "source_snippet": str(source_snippet or event.source_snippet or ""),
+            "source_section": str(source_section or getattr(event, "source_section", "") or ""),
+            "formation_normalized": normalize_metadata_value(event.formation),
+            "well_id_normalized": normalize_metadata_value(event.well_id),
         }
 
         self.collection.upsert(
@@ -107,23 +117,25 @@ class VectorStore:
         query: str,
         top_k: int = 5,
         formation: Optional[str] = None,
+        min_similarity: float = 0.0,
     ) -> List[Dict[str, Any]]:
         """
         Searches for semantically similar drilling events to the given natural language query.
         Optionally filters results by formation.
         """
-        if not query or not query.strip():
+        if not query or not query.strip() or top_k <= 0:
             return []
+        min_similarity = max(0.0, min(1.0, float(min_similarity)))
 
+        # Chroma's equality filter is case-sensitive.  Retrieve candidates and
+        # apply canonical matching below so ingestion/query formatting differs safely.
         where_filter: Optional[Dict[str, Any]] = None
-        if formation and formation.strip():
-            where_filter = {"formation": formation.strip()}
 
         count = self.collection.count()
         if count == 0:
             return []
 
-        n_results = min(top_k, count)
+        n_results = min(max(top_k * 3, top_k), count)
         results = self.collection.query(
             query_texts=[query],
             n_results=n_results,
@@ -146,6 +158,10 @@ class VectorStore:
 
             # Cosine distance to similarity conversion: similarity = 1 - distance
             similarity = max(0.0, min(1.0, 1.0 - float(dist)))
+            if similarity < min_similarity:
+                continue
+            if formation and normalize_metadata_value(meta.get("formation")) != normalize_metadata_value(formation):
+                continue
 
             item: Dict[str, Any] = {
                 "event_id": meta.get("event_id", int(doc_id) if doc_id.isdigit() else 0),
@@ -158,12 +174,15 @@ class VectorStore:
                 "source_doc": meta.get("source_doc", ""),
                 "source_page": meta.get("source_page", None) if meta.get("source_page") != 0 else None,
                 "source_snippet": meta.get("source_snippet", "") or None,
+                "source_section": meta.get("source_section", "") or None,
                 "similarity_score": round(similarity, 4),
                 "document_text": doc_text,
             }
             matched_events.append(item)
 
-        return matched_events
+        # Stable ordering makes ties reproducible across Chroma versions.
+        matched_events.sort(key=lambda x: (-x["similarity_score"], str(x.get("event_id", ""))))
+        return matched_events[:top_k]
 
 
 # Default singleton instance

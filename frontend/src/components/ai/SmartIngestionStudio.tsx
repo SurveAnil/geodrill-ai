@@ -53,9 +53,22 @@ export const SmartIngestionStudio: React.FC = () => {
       }
       setPipelineStep(2);
       setUploadStatus('processing');
-      await response.json();
-      setPipelineStep(3);
-      setUploadStatus('success');
+      const job = await response.json() as { job_id?: string; status?: string; error?: string };
+      if (!job.job_id) throw new Error('Upload accepted without an ingestion job id.');
+      // 202 means queued, not completed: poll the durable job before showing success.
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const statusResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/ingestion-jobs/${encodeURIComponent(job.job_id)}`);
+        if (!statusResponse.ok) throw new Error(`Unable to read ingestion status (${statusResponse.status}).`);
+        const status = await statusResponse.json() as { status: string; error?: string };
+        if (status.status === 'succeeded') {
+          setPipelineStep(3);
+          setUploadStatus('success');
+          return;
+        }
+        if (status.status === 'failed') throw new Error(status.error || 'Document processing failed.');
+      }
+      throw new Error('Document processing timed out; check the ingestion job status in the backend.');
     } catch (error) {
       setUploadStatus('error');
       setErrorMessage(error instanceof Error ? error.message : 'Unable to upload the document.');

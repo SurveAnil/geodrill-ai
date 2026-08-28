@@ -69,6 +69,7 @@ class DrillingEvent(BaseModel):
     action_taken: Optional[str] = Field(None, description="Mitigation / response taken (the ACTION)")
     confidence: Confidence = Confidence.MEDIUM
     source_page: Optional[int] = Field(None, description="Page number in source doc this was extracted from")
+    source_section: Optional[str] = Field(None, description="Section or heading in source document, when available")
     source_snippet: Optional[str] = Field(
         None, description="Short verbatim excerpt supporting this record, for traceability"
     )
@@ -76,9 +77,9 @@ class DrillingEvent(BaseModel):
 
 class EventNearQuery(BaseModel):
     """Query parameters for offset well correlation near a target well/depth."""
-    well_id: str
-    depth_m: float
-    window_m: float = Field(default=100.0, description="Depth window search radius (+/- metres)")
+    well_id: str = Field(..., min_length=1, max_length=200)
+    depth_m: float = Field(..., ge=0, le=100000)
+    window_m: float = Field(default=100.0, gt=0, le=10000, description="Depth window search radius (+/- metres)")
     formation: Optional[str] = None
 
 

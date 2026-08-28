@@ -12,6 +12,7 @@ import {
   Siren,
 } from 'lucide-react';
 import { useDrillStore, RiskLevel } from '@/store/useDrillStore';
+import { apiClient } from '@/lib/api';
 
 /* ------------------------------------------------------------------ */
 /*  Risk-level → visual theme mapping                                  */
@@ -149,7 +150,7 @@ const ScoreArc: React.FC<{ score: number; color: string }> = ({ score, color }) 
 /*  TRIAGE HERO — main export                                          */
 /* ================================================================== */
 export const TriageHero: React.FC = () => {
-  const { telemetry, risk } = useDrillStore();
+  const { telemetry, risk, setRisk } = useDrillStore();
   const theme = RISK_THEMES[risk.riskLevel];
   const isCritical = risk.riskLevel === 'critical';
 
@@ -366,9 +367,17 @@ export const TriageHero: React.FC = () => {
               {risk.riskScore}/100
             </span>
           </span>
-          <span className="text-[11px] text-slate-500 font-mono">
-            Layer 5 Alerting
-          </span>
+          <div className="flex items-center gap-2">
+            {risk.alertId && (
+              <button
+                onClick={() => void apiClient.acknowledgeAlert(risk.alertId!).then(() => setRisk({ ...risk, alertId: undefined, immediateAction: 'Alert acknowledged. Continue monitoring telemetry and the approved well programme.' }))}
+                className="px-2 py-0.5 rounded border border-amber-700/60 text-[10px] font-mono text-amber-300 hover:bg-amber-950/50"
+              >
+                Acknowledge alert
+              </button>
+            )}
+            <span className="text-[11px] text-slate-500 font-mono">Layer 5 Alerting</span>
+          </div>
         </div>
       </div>
     </div>

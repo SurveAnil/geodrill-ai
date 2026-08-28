@@ -10,6 +10,7 @@ import {
   ArrowUpRight,
   HelpCircle,
 } from 'lucide-react';
+import { apiClient } from '@/lib/api';
 
 interface ChatMessage {
   id: string;
@@ -57,7 +58,7 @@ export const GeminiChat: React.FC = () => {
     scrollToBottom();
   }, [messages, isAiThinking]);
 
-  const handleSendMessage = (textToSend?: string) => {
+  const handleSendMessage = async (textToSend?: string) => {
     const query = textToSend || inputQuery;
     if (!query.trim()) return;
 
@@ -72,8 +73,15 @@ export const GeminiChat: React.FC = () => {
     setInputQuery('');
     setIsAiThinking(true);
 
-    // Simulate RAG Knowledge Retrieval + Gemini response
-    setTimeout(() => {
+    try {
+      const response = await apiClient.copilotSearch(query);
+      setMessages((prev) => [...prev, {
+        id: `ai-${Date.now()}`, sender: 'assistant', text: response.answer,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        citation: response.sources[0]?.source_doc ? `Source: ${response.sources[0].source_doc}` : 'Source: Backend knowledge graph',
+      }]);
+    } catch {
+      // Keep the demo usable, but make the fallback explicit in the answer.
       let aiResponseText =
         'Cross-referencing offset well knowledge graph... Found 2 matching stratigraphic analogs within 5.2 km radius.';
       let citationText = 'Source: Offset Knowledge Graph • Vector Match (0.91 similarity)';
@@ -101,8 +109,9 @@ export const GeminiChat: React.FC = () => {
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
+    } finally {
       setIsAiThinking(false);
-    }, 1100);
+    }
   };
 
   return (

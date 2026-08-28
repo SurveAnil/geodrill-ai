@@ -26,11 +26,20 @@ class ExtractionMethod(str, Enum):
     MANUAL_FLAG = "manual_flag"       # Extraction failed or needs human validation
 
 
+class IngestionJobStatus(str, Enum):
+    """Durable lifecycle states for an asynchronous ingestion job."""
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+
+
 class PageContent(BaseModel):
     """Extracted text and structured table data per document page."""
     page_number: int
     text: str
     tables: List[List[List[Optional[str]]]] = Field(default_factory=list)
+    is_digital_native: bool = True
 
 
 class IngestResult(BaseModel):
@@ -40,6 +49,10 @@ class IngestResult(BaseModel):
     pages: List[PageContent] = Field(default_factory=list)
     full_text: str = ""
     warnings: List[str] = Field(default_factory=list)
+    document_type: str = "pdf"
+    scanned_pages: List[int] = Field(default_factory=list)
+    digital_pages: List[int] = Field(default_factory=list)
+    is_mixed: bool = False
 
 
 class ExtractionResult(BaseModel):
@@ -74,3 +87,12 @@ class DocumentReviewItem(BaseModel):
     overall_confidence: Confidence
     processing_notes: Optional[str] = None
     needs_review: bool = True
+
+
+class IngestionJobResponse(BaseModel):
+    job_id: str
+    filename: str
+    status: IngestionJobStatus
+    error: Optional[str] = None
+    created_at: str
+    updated_at: str

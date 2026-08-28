@@ -76,10 +76,16 @@ class DocumentPipeline:
         logger.info("Processing document: %s (identifier: %s)", path_str, doc_identifier)
 
         # Step 1: Ingestion & Text extraction
-        ingest_result = self.pdf_loader.load(path_str)
+        loader = self.pdf_loader
+        ingest_result = (
+            loader.load_supported(path_str)
+            if Path(path_str).suffix.lower() != ".pdf" and hasattr(loader, "load_supported")
+            else loader.load(path_str)
+        )
 
         # Step 2: Routing
         if not ingest_result.is_digital_native:
+            self.ocr_engine.process_scanned_document(ingest_result)
             logger.warning(
                 "Document %s has low text density; flagging for manual/OCR review.",
                 path_str,
@@ -94,13 +100,19 @@ class DocumentPipeline:
                 cementing_records=[],
                 mud_program=[],
                 overall_confidence=Confidence.LOW,
-                processing_notes="Low text density; routed as scanned document needing OCR/VLM.",
+                processing_notes=(
+                    "No digital text pages; OCR dependency unavailable, manual review required."
+                    if not self.ocr_engine.available
+                    else "No digital text pages; OCR hook is available but automatic OCR is not enabled, manual review required."
+                ),
             )
             if persist:
                 self.db.store_extraction_result(result)
             return result
 
         extraction_method = ExtractionMethod.DIGITAL_PARSE
+        if ingest_result.is_mixed:
+            self.ocr_engine.process_scanned_document(ingest_result)
         client = llm_client or self.llm_client
 
         # Step 3: Pass 1 — LLM Structured Header & Incident Extraction
@@ -111,6 +123,11 @@ class DocumentPipeline:
             client=client,
         )
         result.source_doc = doc_identifier
+        if ingest_result.is_mixed:
+            result.processing_notes = (
+                (result.processing_notes + "; " if result.processing_notes else "")
+                + f"Mixed document; scanned pages require review: {ingest_result.scanned_pages}"
+            )
 
         # Step 4: Storage & Inline Vector Embedding for Pass 1
         if persist:

@@ -16,6 +16,7 @@ env/
 # Runtime data
 data/geodrill.db
 data/chroma_db/
+data/ingestion_uploads/
 
 # Frontend
 frontend/node_modules/

@@ -13,14 +13,15 @@ from pydantic import BaseModel, Field
 from src.layer4_knowledge_graph.hybrid_retriever import retriever
 from src.layer4_knowledge_graph.glossary_normalizer import normalize_query
 from src.layer5_copilot.tools import answer_with_citations
+from starlette.concurrency import run_in_threadpool
 
 router = APIRouter(prefix="/copilot", tags=["Copilot & Knowledge Retrieval"])
 
 
 class CopilotSearchRequest(BaseModel):
     """Natural language search request payload."""
-    query: str = Field(..., description="Natural language drilling question or search term")
-    formation: Optional[str] = Field(None, description="Optional geological formation filter")
+    query: str = Field(..., min_length=1, max_length=2000, description="Natural language drilling question or search term")
+    formation: Optional[str] = Field(None, max_length=200, description="Optional geological formation filter")
     top_k: int = Field(5, ge=1, le=20, description="Number of most relevant events to retrieve")
 
 
@@ -52,15 +53,11 @@ async def copilot_search(request: CopilotSearchRequest) -> CopilotSearchResponse
         )
 
     normalized_q = normalize_query(clean_query)
-    retrieved_events = retriever.retrieve(
-        query=clean_query,
-        top_k=request.top_k,
-        formation=request.formation,
+    retrieved_events = await run_in_threadpool(
+        retriever.retrieve, query=clean_query, top_k=request.top_k, formation=request.formation
     )
-
-    synthesis_result = answer_with_citations(
-        query=clean_query,
-        retrieved_events=retrieved_events,
+    synthesis_result = await run_in_threadpool(
+        answer_with_citations, query=clean_query, retrieved_events=retrieved_events
     )
 
     return CopilotSearchResponse(

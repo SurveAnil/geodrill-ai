@@ -8,6 +8,10 @@ GeoDrill AI processes unstructured drilling reports (Well Completion Reports, Da
 
 ## 🏛️ Architecture
 
+For the complete project overview, MVP coverage, architecture, demonstration
+workflow, API surfaces, validation status, and production roadmap, see the
+[Project Documentation](docs/project-documentation.md).
+
 The platform is organized as a seven-phase drilling intelligence experience:
 
 1. **Layer 1: Document Intelligence** — Ingests digital and scanned reports, applies OCR, and extracts structured well data.
@@ -127,6 +131,27 @@ Supports:
 - **Google Gemini** (`GEMINI_API_KEY`, `GEMINI_MODEL`)
 - **Deterministic Mock Client** (Used automatically if no API key is provided)
 
+### 3. Start the Connected Dashboard
+
+In a second terminal, install and start the Next.js frontend:
+
+```bash
+npm install --prefix frontend
+npm run dev --prefix frontend
+```
+
+Open [http://localhost:3000](http://localhost:3000). The frontend uses
+`http://localhost:8000` by default for the FastAPI service. To use another
+backend URL, create `frontend/.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+The dashboard displays `API: CONNECTED` when the backend responds. If the API
+is unavailable, it explicitly displays `DEMO FALLBACK` and uses deterministic
+scenario data so the product can still be demonstrated offline.
+
 ---
 
 ## 🛠️ Usage
@@ -144,6 +169,37 @@ Interactive API documentation will be available at [http://localhost:8000/docs](
 - `GET /api/v1/incidents/wells`: List all extracted wells.
 - `GET /api/v1/incidents/well/{well_id}`: Retrieve well header and historical drilling incidents.
 - `GET /api/v1/incidents/correlate-near`: Find historical incidents in offset wells within depth/formation windows.
+- `GET /api/v1/wells/nearby`: Find wells within a latitude/longitude radius.
+- `POST /api/v1/copilot/search`: Search the grounded drilling knowledge base with citations.
+- `POST /api/v1/trajectory/correlate-formations`: Correlate survey stations and formation tops.
+- `POST /api/v1/telemetry`: Ingest validated real-time telemetry samples.
+- `GET /api/v1/telemetry/recent`: Retrieve recent telemetry for a well.
+- `POST /api/v1/predictive-risk`: Evaluate explainable hazard probabilities.
+- `POST /api/v1/alerts`: Evaluate deterministic safety alerts and recommendations.
+- `POST /api/v1/alerts/{alert_id}/acknowledge`: Acknowledge an operational alert.
+- `POST /api/v1/ingest-document`: Queue PDF, DOCX, LAS, or WITSML ingestion.
+- `GET /api/v1/ingestion-jobs/{job_id}`: Track a queued ingestion job to completion.
+
+### Connected Dashboard Workflow
+
+The dashboard is organized as a backend-connected decision-support flow:
+
+1. Upload a historical report in **Smart Ingestion Studio**. The frontend
+   submits the multipart file and polls the durable ingestion job.
+2. The **AI Copilot** calls grounded retrieval and displays source citations.
+3. **Geospatial Radar** loads nearby wells from the radius API, with demo data
+   available when no well coordinates are stored.
+4. **Lessons Learned** loads depth- and formation-correlated incidents.
+5. **Stratigraphic Correlation** submits survey and formation-top data to the
+   trajectory service.
+6. The 10Hz simulator sends validated telemetry to the backend. Every tenth
+   sample requests predictive risk and alert evaluation to avoid request storms.
+7. The triage card displays the highest returned hazard, recommendation, and
+   citation; an engineer can acknowledge an alert through the API.
+
+The simulator remains intentionally available for hackathon demonstrations.
+It is clearly labeled as demo fallback data and is not a substitute for an
+OIL eRTMAC, WITSML, MQTT, OPC-UA, or Kafka production stream.
 
 ### Programmatic Extraction Pipeline
 ```python
@@ -166,3 +222,23 @@ Run the automated test suite with pytest:
 ```bash
 pytest tests/ -v
 ```
+
+Build the frontend from the repository root:
+
+```bash
+npm run build --prefix frontend
+```
+
+The backend predictive-risk service currently provides an explainable
+`heuristic-baseline-v1`. It is not yet a statistically trained or calibrated
+model because labeled historical incident outcomes are required. Production
+deployment also requires authentication, distributed workers, durable alert
+storage, and live eRTMAC/WITSML telemetry integration.
+
+### Render deployment
+
+The repository includes [`render.yaml`](render.yaml), which pins the service to
+Python 3.12, installs all dependencies from `requirements.txt` (including
+ChromaDB), starts Uvicorn on Render's `$PORT`, and uses `/health` for health
+checks. If the service was created manually in Render, set the build command to
+`pip install -r requirements.txt` and redeploy after saving the configuration.

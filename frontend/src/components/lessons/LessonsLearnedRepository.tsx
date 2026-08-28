@@ -13,6 +13,9 @@ import {
   CheckCircle2,
   ExternalLink,
 } from 'lucide-react';
+import { useEffect } from 'react';
+import { apiClient } from '@/lib/api';
+import type { IncidentEvent } from '@/lib/api';
 
 export type HazardCategory = 'all' | 'mud_loss' | 'stuck_pipe' | 'kick';
 
@@ -103,9 +106,29 @@ const SEVERITY_CONFIG = {
 export const LessonsLearnedRepository: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<HazardCategory>('all');
+  const [events, setEvents] = useState<LessonEvent[]>(LESSON_EVENTS);
+  const [apiUnavailable, setApiUnavailable] = useState(false);
+  useEffect(() => {
+    apiClient.correlateIncidents('15/9-F-11B', 2445, 'Hugin Formation').then((items) => {
+      const mapped = items.map((item: IncidentEvent, index) => {
+        const category = item.event_type === 'kick' ? 'kick' : item.event_type === 'stuck_pipe' ? 'stuck_pipe' : 'mud_loss';
+        return {
+          id: String(item.event_id || `api-${index}`), depthM: Number(item.depth_m || 0),
+          wellName: item.well_id || 'Offset well', formation: item.formation || 'Unknown formation',
+          hazardName: String(item.event_type || 'Historical incident').replace(/_/g, ' '),
+          category, severity: item.severity === 'critical' ? 'critical' : item.severity === 'caution' ? 'caution' : 'warning',
+          incidentDescription: item.description || item.source_snippet || 'Historical incident correlated near current depth.',
+          mitigation: item.mitigation || 'Review the source report and approved well programme.',
+          keyLesson: item.key_lesson || 'Validate controls against offset-well evidence before proceeding.',
+          sourceDoc: item.source_doc || 'Backend incident store', date: item.date || 'Undated',
+        } as LessonEvent;
+      }).filter((item) => item.depthM > 0);
+      if (mapped.length) setEvents(mapped);
+    }).catch(() => setApiUnavailable(true));
+  }, []);
 
   const filteredEvents = useMemo(() => {
-    return LESSON_EVENTS.filter((evt) => {
+    return events.filter((evt) => {
       const matchesCategory =
         selectedCategory === 'all' || evt.category === selectedCategory;
       const q = searchQuery.toLowerCase().trim();
@@ -120,7 +143,7 @@ export const LessonsLearnedRepository: React.FC = () => {
 
       return matchesCategory && matchesQuery;
     });
-  }, [searchQuery, selectedCategory]);
+  }, [events, searchQuery, selectedCategory]);
 
   return (
     <div className="flex flex-col h-full justify-between">
@@ -282,7 +305,7 @@ export const LessonsLearnedRepository: React.FC = () => {
           <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
           <span>Operational Best Practices Auto-Linked</span>
         </span>
-        <span className="text-cyan-400 font-semibold">Layer 4 Incident Store</span>
+         <span className={apiUnavailable ? 'text-amber-400' : 'text-cyan-400'}>{apiUnavailable ? 'Demo data (API unavailable)' : 'Layer 4 Incident Store'}</span>
       </div>
     </div>
   );

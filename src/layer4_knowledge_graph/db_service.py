@@ -9,13 +9,15 @@ Provides relational storage, offset-well spatial radius queries, and geological 
 from __future__ import annotations
 
 import logging
-import math
 import os
 import sqlite3
+import math
 from contextlib import contextmanager
 from typing import Generator, List, Optional, Dict, Any, Tuple, Sequence
 
-from src.api.schemas.document_schemas import ExtractionResult, DocumentReviewItem, ExtractionMethod
+from src.api.schemas.document_schemas import (
+    ExtractionResult, DocumentReviewItem, ExtractionMethod, IngestionJobStatus,
+)
 from src.api.schemas.incident_schemas import Confidence, WellHeader, DrillingEvent, EventType
 from src.api.schemas.well_program_schemas import (
     FormationTop,
@@ -64,6 +66,17 @@ CREATE TABLE IF NOT EXISTS documents (
     processing_notes    TEXT,
     needs_review        INTEGER DEFAULT 0
 );
+
+CREATE TABLE IF NOT EXISTS ingestion_jobs (
+    job_id       TEXT PRIMARY KEY,
+    filename     TEXT NOT NULL,
+    stored_path  TEXT NOT NULL,
+    status       TEXT NOT NULL CHECK (status IN ('queued', 'running', 'succeeded', 'failed')),
+    error        TEXT,
+    created_at   TEXT NOT NULL,
+    updated_at   TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ingestion_jobs_status ON ingestion_jobs(status);
 
 CREATE TABLE IF NOT EXISTS formation_tops (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -168,6 +181,34 @@ class DatabaseService:
         """Initializes database tables and indexes if they do not already exist."""
         with self.get_connection() as conn:
             conn.executescript(SCHEMA_SQL)
+
+    def create_ingestion_job(self, job_id: str, filename: str, stored_path: str) -> Dict[str, Any]:
+        """Create a durable queued job record."""
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).isoformat()
+        with self.get_connection() as conn:
+            conn.execute(
+                "INSERT INTO ingestion_jobs (job_id, filename, stored_path, status, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (job_id, filename, stored_path, IngestionJobStatus.QUEUED.value, now, now),
+            )
+        return self.get_ingestion_job(job_id)  # type: ignore[return-value]
+
+    def get_ingestion_job(self, job_id: str) -> Optional[Dict[str, Any]]:
+        """Return a job by id, or None when it does not exist."""
+        with self.get_connection() as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute("SELECT * FROM ingestion_jobs WHERE job_id = ?", (job_id,)).fetchone()
+            return dict(row) if row else None
+
+    def update_ingestion_job(self, job_id: str, status: IngestionJobStatus, error: Optional[str] = None) -> None:
+        """Persist a job state transition and optional failure detail."""
+        from datetime import datetime, timezone
+        with self.get_connection() as conn:
+            conn.execute(
+                "UPDATE ingestion_jobs SET status = ?, error = ?, updated_at = ? WHERE job_id = ?",
+                (status.value, error, datetime.now(timezone.utc).isoformat(), job_id),
+            )
 
     def store_extraction_result(self, result: ExtractionResult) -> List[Tuple[int, DrillingEvent]]:
         """
@@ -550,6 +591,7 @@ class DatabaseService:
         window_m: float = 100.0,
         formation: Optional[str] = None,
         direction: str = "both",
+        radius_km: Optional[float] = None,
     ) -> List[Dict[str, Any]]:
         """
         Finds drilling events in offset wells around a specified depth window,
@@ -577,7 +619,30 @@ class DatabaseService:
                 params.append(formation)
 
             rows = conn.execute(query, params).fetchall()
-            return [dict(r) for r in rows]
+            events = [dict(r) for r in rows]
+            if radius_km is None:
+                return events
+
+            target = conn.execute(
+                "SELECT latitude, longitude FROM wells WHERE well_id = ?", (well_id,)
+            ).fetchone()
+            if not target or target["latitude"] is None or target["longitude"] is None:
+                # Coordinate-aware filtering is unavailable when the target has no location.
+                return events
+
+            def distance_km(event: Dict[str, Any]) -> Optional[float]:
+                if event.get("latitude") is None or event.get("longitude") is None:
+                    return None
+                lat1, lon1 = math.radians(target["latitude"]), math.radians(target["longitude"])
+                lat2, lon2 = math.radians(event["latitude"]), math.radians(event["longitude"])
+                dlat, dlon = lat2 - lat1, lon2 - lon1
+                a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+                return 6371.0 * 2 * math.asin(math.sqrt(a))
+
+            return [
+                event for event in events
+                if distance_km(event) is not None and distance_km(event) <= radius_km
+            ]
 
     def well_exists(self, well_id: str) -> bool:
         """Lightweight existence check for a well — avoids fetching the full row."""

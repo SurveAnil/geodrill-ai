@@ -13,6 +13,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { useDrillStore, SCENARIO_PRESETS, ScenarioType } from '@/store/useDrillStore';
+import { apiClient, toTelemetryPoint } from '@/lib/api';
 
 export const TopNav: React.FC = () => {
   const {
@@ -28,6 +29,9 @@ export const TopNav: React.FC = () => {
     toggleSimulation,
     toggle10HzStream,
     stepSimulation,
+    setRisk,
+    setBackendStatus,
+    backendStatus,
   } = useDrillStore();
 
   // 10Hz live simulation ticker
@@ -38,6 +42,48 @@ export const TopNav: React.FC = () => {
     }, 100); // 10 ticks per second = 10Hz
     return () => clearInterval(interval);
   }, [isSimulating, stepSimulation]);
+
+  // Keep the simulator useful offline while synchronising samples and risk when the API is available.
+  useEffect(() => {
+    if (!isStreaming10Hz) return;
+    let busy = false;
+    let ticks = 0;
+    const interval = setInterval(async () => {
+      if (busy) return;
+      busy = true;
+      const state = useDrillStore.getState();
+      const point = toTelemetryPoint(state.activeWellId, state.telemetry);
+      try {
+        await apiClient.ingestTelemetry([point]);
+        if (++ticks % 10 === 0) {
+          const [prediction, alerts] = await Promise.all([
+            apiClient.predictRisk(point, state.telemetry.currentFormation),
+            apiClient.evaluateAlerts(point, state.telemetry.currentFormation),
+          ]);
+          const ranked = Object.entries(prediction.hazards).sort((a, b) => b[1].probability - a[1].probability)[0];
+          const alert = alerts.alerts[0];
+          if (ranked) {
+            const level = ranked[1].risk_level;
+            const riskLevel = level === 'high' && (alert?.severity === 'critical') ? 'critical' : level;
+            setRisk({
+              riskLevel: riskLevel as 'low' | 'medium' | 'high' | 'critical',
+              riskScore: Math.round(ranked[1].probability * 100),
+              predictedHazard: alert?.hazard || ranked[0].replace(/_/g, ' '),
+              immediateAction: alerts.recommendations[0]?.action || 'Continue surveillance and follow the approved well programme.',
+              offsetWellCitation: ranked[1].evidence?.[0]?.source_doc || 'Backend predictive-risk baseline; no citation returned.',
+              alertId: alert?.alert_id,
+            });
+          }
+        }
+        setBackendStatus('online');
+      } catch {
+        setBackendStatus('unavailable');
+      } finally {
+        busy = false;
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isStreaming10Hz, setRisk, setBackendStatus]);
 
   return (
     <header className="w-full bg-[#0B1120] border-b border-[#1E293B] sticky top-0 z-50 select-none">
@@ -170,6 +216,9 @@ export const TopNav: React.FC = () => {
               {isStreaming10Hz ? 'LIVE 10Hz' : 'OFFLINE'}
             </span>
           </button>
+          <span className={`text-[10px] font-mono ${backendStatus === 'online' ? 'text-emerald-400' : backendStatus === 'unavailable' ? 'text-amber-400' : 'text-slate-500'}`}>
+            API: {backendStatus === 'online' ? 'CONNECTED' : backendStatus === 'unavailable' ? 'DEMO FALLBACK' : 'DEMO'}
+          </span>
         </div>
       </div>
     </header>

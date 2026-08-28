@@ -48,6 +48,17 @@ logger = logging.getLogger(__name__)
 ENV_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env")
 PROVIDER_QUEUE: List[Dict[str, Any]] = []
 
+
+def _is_configured_secret(value: Any) -> bool:
+    """Treat template values as unset so local development uses mock mode."""
+    if not isinstance(value, str):
+        return False
+    normalized = value.strip().lower()
+    return bool(normalized) and normalized not in {"changeme", "none", "null"} and not normalized.startswith(
+        ("your_", "replace_", "insert_")
+    )
+
+
 # Exact JSON Schema specification for Pass 1 (Well header + Events)
 JSON_EXTRACTION_PROMPT = f"""{SYSTEM_PROMPT}
 
@@ -190,7 +201,7 @@ def load_app_env() -> None:
         for item in ordered:
             provider = str(item.get("provider", "")).lower()
             api_key = item.get("api_key")
-            if provider not in {"groq", "openai", "gemini", "anthropic"} or not api_key:
+            if provider not in {"groq", "openai", "gemini", "anthropic"} or not _is_configured_secret(api_key):
                 continue
 
             provider_entry = {
@@ -781,7 +792,7 @@ def get_llm_client() -> LLMClient:
     if PROVIDER_QUEUE:
         for entry in sorted(PROVIDER_QUEUE, key=lambda item: item.get("priority", 999)):
             factory = provider_factories.get(entry["provider"])
-            if factory and entry.get("api_key"):
+            if factory and _is_configured_secret(entry.get("api_key")):
                 try:
                     configured.append(
                         factory(
@@ -795,7 +806,7 @@ def get_llm_client() -> LLMClient:
     else:
         for provider_name, factory in provider_factories.items():
             env_key = f"{provider_name.upper()}_API_KEY"
-            if os.environ.get(env_key):
+            if _is_configured_secret(os.environ.get(env_key)):
                 try:
                     configured.append(factory())
                 except Exception as exc:

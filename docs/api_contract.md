@@ -8,6 +8,16 @@ Interactive Swagger documentation is available at `http://localhost:8000/docs`.
 
 ## 1. Document Ingestion & Extraction Endpoints
 
+### `POST /api/v1/ingest-document`
+Queues a validated `.pdf`, `.docx`, `.las`, or `.witsml` upload for background ingestion.
+The upload is stored under a generated, non-user-controlled filename and removed after processing.
+Returns `202 Accepted` with a durable job record (`status`: `queued`, `running`, `succeeded`, or `failed`).
+
+### `GET /api/v1/ingestion-jobs/{job_id}`
+Returns the durable status and failure detail (when applicable) for an ingestion job.
+`404 Not Found` is returned for an unknown job ID. `/api/v1/ingestion-jobs` (POST) is an equivalent
+job-creation route.
+
 ### `POST /api/v1/documents/process-file`
 Uploads a Well Completion Report (WCR) or Daily Drilling Report (DDR) in PDF format, extracts structured well metadata and drilling events, and stores the records in the database and ChromaDB vector store.
 
@@ -201,6 +211,10 @@ Queries historical drilling incidents from neighboring offset wells within a giv
   - `depth_m` (float, required): Planned measured depth in metres.
   - `window_m` (float, optional, default: 100.0): Search radius (+/- metres).
   - `formation` (string, optional): Formation name filter.
+  - `radius_km` (float, optional, 0-500): Restrict matches to this physical
+    radius using well coordinates. Offset events without coordinates are
+    excluded; if the target well lacks coordinates, the endpoint falls back
+    to depth/formation matching and cannot apply the physical-radius filter.
 - **Responses**: `200 OK`
 - **Example Response**:
 ```json
@@ -355,4 +369,3 @@ All API errors return consistent JSON detail objects:
 - `404 Not Found`: Resource or well identifier not present in database.
 - `422 Unprocessable Entity`: Missing or invalid query parameters (e.g., non-numeric depth).
 - `500 Internal Server Error`: Unhandled server/pipeline exception.
-

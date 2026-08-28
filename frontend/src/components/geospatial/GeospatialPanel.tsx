@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { MapPin, Compass, Radio } from 'lucide-react';
 import { OffsetRadarTable, OffsetWellItem } from './OffsetRadarTable';
+import { apiClient, NearbyWell } from '@/lib/api';
 
 // Dynamically import WellMap to bypass SSR for Leaflet window dependencies
 const DynamicWellMap = dynamic(
@@ -21,6 +22,20 @@ const DynamicWellMap = dynamic(
 
 export const GeospatialPanel: React.FC = () => {
   const [selectedWell, setSelectedWell] = useState<OffsetWellItem | null>(null);
+  const [wells, setWells] = useState<OffsetWellItem[]>([]);
+  const [apiUnavailable, setApiUnavailable] = useState(false);
+  useEffect(() => {
+    apiClient.nearbyWells(16.245, 82.352, 10, '15/9-F-11B').then((items) => {
+      const mapped = items.map((item: NearbyWell, index): OffsetWellItem => ({
+        id: item.well_id || `well-${index}`, name: item.well_id || item.name || 'Unknown well',
+        distanceKm: Number(item.distance_km || 0), hazard: item.hazard || 'Historical events available',
+        status: item.status === 'critical' ? 'critical' : item.status === 'warning' ? 'warning' : 'safe',
+        lat: Number(item.latitude), lon: Number(item.longitude),
+      })).filter((item) => Number.isFinite(item.lat) && Number.isFinite(item.lon));
+      if (mapped.length) setWells(mapped);
+    }).catch(() => setApiUnavailable(true));
+  }, []);
+  const displayedWells = wells.length ? wells : undefined;
 
   return (
     <div className="flex flex-col h-full gap-3">
@@ -38,7 +53,7 @@ export const GeospatialPanel: React.FC = () => {
 
       {/* Interactive GIS Map Container */}
       <div className="flex-1 min-h-[260px] max-h-[340px]">
-        <DynamicWellMap selectedWell={selectedWell} />
+        <DynamicWellMap selectedWell={selectedWell} wells={displayedWells} />
       </div>
 
       {/* Offset Wells Radar Table */}
@@ -46,6 +61,7 @@ export const GeospatialPanel: React.FC = () => {
         <OffsetRadarTable
           selectedWellId={selectedWell?.id}
           onSelectWell={(well) => setSelectedWell((prev) => (prev?.id === well.id ? null : well))}
+          wells={displayedWells}
         />
       </div>
 
@@ -55,7 +71,7 @@ export const GeospatialPanel: React.FC = () => {
           <Radio className="w-3 h-3 text-cyan-400 animate-pulse" />
           <span>Haversine Spatial Index</span>
         </span>
-        <span className="text-cyan-400 font-semibold">Layer 4 Knowledge Store</span>
+         <span className={apiUnavailable ? 'text-amber-400' : 'text-cyan-400'}>{apiUnavailable ? 'Demo data (API unavailable)' : 'Layer 4 Knowledge Store'}</span>
       </div>
     </div>
   );

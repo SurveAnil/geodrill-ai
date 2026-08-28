@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query
 
 from src.layer4_knowledge_graph.db_service import db_service
+from starlette.concurrency import run_in_threadpool
 
 router = APIRouter(prefix="/wells", tags=["Wells & Geospatial Intelligence"])
 
@@ -36,13 +37,13 @@ async def get_wells_nearby(
             status_code=400,
             detail=f"Invalid longitude: {lon}. Must be between -180.0 and 180.0 degrees.",
         )
-    if radius_km <= 0.0:
+    if radius_km <= 0.0 or radius_km > 500.0:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid radius_km: {radius_km}. Must be greater than 0.",
+            detail=f"Invalid radius_km: {radius_km}. Must be between 0 and 500 km.",
         )
 
-    results = db_service.query_wells_within_radius(
+    results = await run_in_threadpool(db_service.query_wells_within_radius,
         center_lat=lat,
         center_lon=lon,
         radius_km=radius_km,

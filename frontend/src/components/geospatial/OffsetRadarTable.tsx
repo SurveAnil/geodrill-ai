@@ -73,11 +73,13 @@ const STATUS_CONFIG = {
 interface OffsetRadarTableProps {
   onSelectWell?: (well: OffsetWellItem) => void;
   selectedWellId?: string;
+  wells?: OffsetWellItem[];
 }
 
 export const OffsetRadarTable: React.FC<OffsetRadarTableProps> = ({
   onSelectWell,
   selectedWellId,
+  wells = OFFSET_WELLS,
 }) => {
   return (
     <div className="w-full flex flex-col">
@@ -86,7 +88,7 @@ export const OffsetRadarTable: React.FC<OffsetRadarTableProps> = ({
           <Navigation className="w-3.5 h-3.5 text-cyan-400" />
           <span>Offset Wells Radar (10 km Radius)</span>
         </div>
-        <span className="text-[10px] font-mono text-slate-500">3 Wells In Range</span>
+        <span className="text-[10px] font-mono text-slate-500">{wells.length} Wells In Range</span>
       </div>
 
       <div className="w-full overflow-hidden rounded-lg border border-slate-800/80 bg-[#0A101D]">
@@ -100,7 +102,7 @@ export const OffsetRadarTable: React.FC<OffsetRadarTableProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/60 font-sans">
-            {OFFSET_WELLS.map((well) => {
+            {wells.map((well) => {
               const cfg = STATUS_CONFIG[well.status];
               const isSelected = selectedWellId === well.id;
               return (
