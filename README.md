@@ -246,3 +246,6 @@ Set `GEODRILL_CORS_ORIGINS` to the exact deployed Vercel origin, for example
 `https://your-project.vercel.app`. In Vercel, set
 `NEXT_PUBLIC_API_URL` to the public Render service URL and redeploy the frontend
 after changing it.
+Vercel preview URLs are allowed by the default
+`GEODRILL_CORS_ORIGIN_REGEX`; set that variable to an empty value and use only
+explicit `GEODRILL_CORS_ORIGINS` values if stricter production CORS is required.

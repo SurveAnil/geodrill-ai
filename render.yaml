@@ -10,6 +10,8 @@ services:
         value: 3.12.10
       - key: GEODRILL_CORS_ORIGINS
         sync: false
+      - key: GEODRILL_CORS_ORIGIN_REGEX
+        value: ^https://[a-zA-Z0-9-]+\.vercel\.app$
       - key: GEMINI_API_KEY
         sync: false
       - key: GEMINI_MODEL

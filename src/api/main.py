@@ -132,9 +132,18 @@ def _cors_origins() -> list[str]:
     return origins or ["http://localhost:3000", "http://127.0.0.1:3000"]
 
 
+def _cors_origin_regex() -> str | None:
+    """Permit Vercel preview deployments; custom domains use explicit origins."""
+    return os.getenv(
+        "GEODRILL_CORS_ORIGIN_REGEX",
+        r"^https://[a-zA-Z0-9-]+\.vercel\.app$",
+    ).strip() or None
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins(),
+    allow_origin_regex=_cors_origin_regex(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
