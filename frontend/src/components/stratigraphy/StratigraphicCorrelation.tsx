@@ -205,19 +205,19 @@ export const StratigraphicCorrelation: React.FC = () => {
                 );
               })}
 
-              {/* HAZARD HORIZON OVERLAY (Red Hatched Box with Glowing Border) */}
+              {/* HAZARD HORIZON OVERLAY (keeps the warning readable over formation labels) */}
               <div
                 style={{
                   top: `${hazardTopPct}%`,
                   height: `${hazardHeightPct}%`,
                 }}
-                className="absolute inset-x-0 bg-red-950/70 border-2 border-red-500/90 rounded px-2 flex items-center justify-between shadow-[0_0_15px_rgba(239,68,68,0.3)] z-10 animate-pulse"
+                className="absolute inset-x-0 bg-red-950/95 border-2 border-red-500/90 rounded px-2 flex items-center justify-between shadow-[0_0_15px_rgba(239,68,68,0.3)] z-10 isolate pointer-events-none animate-pulse"
               >
-                <div className="flex items-center gap-1 text-[9.5px] font-bold text-red-200 font-mono">
+                <div className="flex items-center gap-1 text-[9.5px] font-bold text-red-100 font-mono bg-red-950 px-1 rounded">
                   <AlertTriangle className="w-3 h-3 text-red-400 flex-shrink-0" />
                   <span className="truncate">{HAZARD_HORIZON.name} ({HAZARD_HORIZON.lossRate})</span>
                 </div>
-                <span className="text-[8.5px] font-mono text-red-300 bg-red-900/60 px-1 py-0.5 rounded">
+                <span className="text-[8.5px] font-mono text-red-100 bg-red-900 px-1 py-0.5 rounded whitespace-nowrap">
                   2,440–2,500m
                 </span>
               </div>
