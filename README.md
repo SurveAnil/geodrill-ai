@@ -242,3 +242,7 @@ Python 3.12, installs all dependencies from `requirements.txt` (including
 ChromaDB), starts Uvicorn on Render's `$PORT`, and uses `/health` for health
 checks. If the service was created manually in Render, set the build command to
 `pip install -r requirements.txt` and redeploy after saving the configuration.
+Set `GEODRILL_CORS_ORIGINS` to the exact deployed Vercel origin, for example
+`https://your-project.vercel.app`. In Vercel, set
+`NEXT_PUBLIC_API_URL` to the public Render service URL and redeploy the frontend
+after changing it.

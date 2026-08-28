@@ -15,7 +15,8 @@ import {
 type StepStatus = 'idle' | 'running' | 'completed';
 type UploadStatus = 'idle' | 'uploading' | 'processing' | 'success' | 'error';
 
-const API_ENDPOINT = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/ingest-document`;
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+const API_ENDPOINT = `${API_BASE_URL}/api/v1/ingest-document`;
 const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.las', '.witsml'];
 
 export const SmartIngestionStudio: React.FC = () => {
@@ -48,8 +49,11 @@ export const SmartIngestionStudio: React.FC = () => {
     try {
       const response = await fetch(API_ENDPOINT, { method: 'POST', body: formData });
       if (!response.ok) {
-        const body = await response.json().catch(() => null) as { detail?: string } | null;
-        throw new Error(body?.detail || `Upload failed (${response.status}).`);
+        const body = await response.json().catch(() => null) as { detail?: string; message?: string } | null;
+        if (response.status === 413) {
+          throw new Error('The file is too large for the backend upload limit.');
+        }
+        throw new Error(body?.detail || body?.message || `Upload failed with HTTP ${response.status}.`);
       }
       setPipelineStep(2);
       setUploadStatus('processing');
@@ -58,8 +62,11 @@ export const SmartIngestionStudio: React.FC = () => {
       // 202 means queued, not completed: poll the durable job before showing success.
       for (let attempt = 0; attempt < 60; attempt += 1) {
         await new Promise((resolve) => setTimeout(resolve, 500));
-        const statusResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/ingestion-jobs/${encodeURIComponent(job.job_id)}`);
-        if (!statusResponse.ok) throw new Error(`Unable to read ingestion status (${statusResponse.status}).`);
+        const statusResponse = await fetch(`${API_BASE_URL}/api/v1/ingestion-jobs/${encodeURIComponent(job.job_id)}`);
+        if (!statusResponse.ok) {
+          const body = await statusResponse.json().catch(() => null) as { detail?: string } | null;
+          throw new Error(body?.detail || `Unable to read ingestion status (HTTP ${statusResponse.status}).`);
+        }
         const status = await statusResponse.json() as { status: string; error?: string };
         if (status.status === 'succeeded') {
           setPipelineStep(3);
@@ -71,7 +78,12 @@ export const SmartIngestionStudio: React.FC = () => {
       throw new Error('Document processing timed out; check the ingestion job status in the backend.');
     } catch (error) {
       setUploadStatus('error');
-      setErrorMessage(error instanceof Error ? error.message : 'Unable to upload the document.');
+      const message = error instanceof Error ? error.message : '';
+      setErrorMessage(
+        message === 'Failed to fetch'
+          ? 'Cannot reach the backend. Check NEXT_PUBLIC_API_URL and backend CORS settings.'
+          : message || 'Unable to upload the document.'
+      );
     }
   };
 
@@ -114,6 +126,16 @@ export const SmartIngestionStudio: React.FC = () => {
 
         <button
           onClick={() => fileInputRef.current?.click()}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
+          role="button"
+          tabIndex={isProcessing ? -1 : 0}
+          aria-disabled={isProcessing}
+          aria-label="Upload a drilling document"
           disabled={isProcessing}
           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold font-mono transition-all ${
             isProcessing
