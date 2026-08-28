@@ -526,6 +526,57 @@ class MockLLMClient(LLMClient):
     """
 
     def extract(self, document_text: str, source_doc: str, extraction_method: ExtractionMethod) -> dict:
+        if "NWIS-DEMO-01" in document_text or "DEMO-NWIS-WCR-001" in document_text:
+            return {
+                "well_header": {
+                    "well_id": "NWIS-DEMO-01",
+                    "operator": "Synthetic Energy Ltd. (fictional)",
+                    "field_name": "Krishna Demonstration Field",
+                    "latitude": 16.2450,
+                    "longitude": 82.3520,
+                    "total_depth_m": 3050.0,
+                },
+                "events": [
+                    {
+                        "well_id": "NWIS-DEMO-01", "event_type": "mud_loss", "depth_m": 2455.0,
+                        "formation": "Upper Sand", "description": "Seepage losses of 15 bbl/hr occurred in the permeable Upper Sand.",
+                        "symptom": "Pit volume decreased steadily while drilling.", "action_taken": "Pumped a 50 bbl LCM pill at 40 ppb, reduced flow, and monitored ECD.",
+                        "confidence": "high", "source_page": 1, "source_snippet": "EVT-001 Mud losses at 2,455 m MD in Upper Sand; 15 bbl/hr seepage losses; pumped 50 bbl LCM pill.",
+                    },
+                    {
+                        "well_id": "NWIS-DEMO-01", "event_type": "kick", "depth_m": 2515.0,
+                        "formation": "Hugin Demonstration Sand", "description": "A gas kick caused a 12 bbl pit gain while drilling the Hugin Demonstration Sand.",
+                        "symptom": "Flow continued after pumps were turned off.", "action_taken": "Shut in on the annular BOP and circulated the influx using the Driller's Method.",
+                        "confidence": "high", "source_page": 1, "source_snippet": "EVT-002 Gas kick / influx at 2,515 m MD; 12 bbl pit gain; shut in on annular BOP.",
+                    },
+                    {
+                        "well_id": "NWIS-DEMO-01", "event_type": "stuck_pipe", "depth_m": 2735.0,
+                        "formation": "Shale Transition", "description": "The drillstring became stuck while tripping through reactive shale.",
+                        "symptom": "40 klbf overpull and tight-hole indication.", "action_taken": "Worked the string and jarred for 6 hours, then performed a wiper trip and conditioned the hole.",
+                        "confidence": "high", "source_page": 1, "source_snippet": "EVT-003 Stuck pipe at 2,735 m MD; 40 klbf overpull in Shale Transition.",
+                    },
+                    {
+                        "well_id": "NWIS-DEMO-01", "event_type": "torque_spike", "depth_m": 2765.0,
+                        "formation": "Shale Transition", "description": "Torque increased from 18 to 31 kN-m while ROP declined.",
+                        "symptom": "Rapid torque increase with falling rate of penetration.", "action_taken": "Reduced WOB, reciprocated the string, increased inhibition, and swept more frequently.",
+                        "confidence": "high", "source_page": 1, "source_snippet": "EVT-004 Torque spike at 2,765 m MD; torque increased from 18 to 31 kN-m.",
+                    },
+                    {
+                        "well_id": "NWIS-DEMO-01", "event_type": "cementing_issue", "depth_m": 2900.0,
+                        "formation": "Lower Carbonate", "description": "A poor cement bond indication was observed near the casing shoe.",
+                        "symptom": "Possible channel or incomplete cement placement.", "action_taken": "Remedial squeeze cemented, pressure tested the shoe, and updated the displacement plan.",
+                        "confidence": "high", "source_page": 1, "source_snippet": "EVT-005 Cementing issue at 2,900 m MD in Lower Carbonate.",
+                    },
+                    {
+                        "well_id": "NWIS-DEMO-01", "event_type": "overpressure", "depth_m": 2505.0,
+                        "formation": "Hugin Demonstration Sand", "description": "Connection gas and increasing flow-back indicated an overpressure warning.",
+                        "symptom": "Gas at connection and rising flow-back trend.", "action_taken": "Increased mud weight from 1.12 to 1.16 SG, verified trip margin, and monitored pit gain.",
+                        "confidence": "high", "source_page": 1, "source_snippet": "EVT-006 Overpressure warning at 2,505 m MD in Hugin Demonstration Sand.",
+                    },
+                ],
+                "overall_confidence": "high",
+                "processing_notes": "Deterministic demonstration extraction used because this synthetic report has a known event table.",
+            }
         if "15/9-F-11B" in document_text or "F-11B" in document_text:
             return {
                 "well_header": {

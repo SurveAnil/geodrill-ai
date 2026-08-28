@@ -37,6 +37,17 @@ def test_mock_llm_client_unknown_document():
     assert len(raw["events"]) == 0
 
 
+def test_mock_llm_client_demo_nwis_document_extracts_events():
+    raw = MockLLMClient().extract(
+        "Report ID DEMO-NWIS-WCR-001 for well NWIS-DEMO-01.",
+        "demo_nwis_multi_event_report.pdf",
+        ExtractionMethod.DIGITAL_PARSE,
+    )
+    assert raw["well_header"]["well_id"] == "NWIS-DEMO-01"
+    assert len(raw["events"]) == 6
+    assert raw["events"][0]["source_page"] == 1
+
+
 def test_fallback_llm_client_cascades_to_mock():
     class FailingClient:
         def extract(self, *args, **kwargs):

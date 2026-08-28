@@ -60,6 +60,13 @@ export const TopNav: React.FC = () => {
             apiClient.predictRisk(point, state.telemetry.currentFormation),
             apiClient.evaluateAlerts(point, state.telemetry.currentFormation),
           ]);
+          const hasHistoricalEvidence = Object.values(prediction.hazards).some(
+            (hazard) => (hazard.evidence?.length || 0) > 0
+          );
+          if (!hasHistoricalEvidence) {
+            setBackendStatus('online');
+            return;
+          }
           const ranked = Object.entries(prediction.hazards).sort((a, b) => b[1].probability - a[1].probability)[0];
           const alert = alerts.alerts[0];
           if (ranked) {
