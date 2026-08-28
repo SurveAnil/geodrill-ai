@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Crosshair,
   AlertTriangle,
@@ -151,8 +151,25 @@ const ScoreArc: React.FC<{ score: number; color: string }> = ({ score, color }) 
 /* ================================================================== */
 export const TriageHero: React.FC = () => {
   const { telemetry, risk, setRisk } = useDrillStore();
+  const [acknowledged, setAcknowledged] = useState(false);
   const theme = RISK_THEMES[risk.riskLevel];
   const isCritical = risk.riskLevel === 'critical';
+
+  useEffect(() => {
+    setAcknowledged(false);
+  }, [risk.predictedHazard, risk.riskScore]);
+
+  const acknowledgeCurrentAlert = async () => {
+    if (risk.alertId) {
+      await apiClient.acknowledgeAlert(risk.alertId);
+    }
+    setAcknowledged(true);
+    setRisk({
+      ...risk,
+      alertId: undefined,
+      immediateAction: 'Alert acknowledged. Continue monitoring telemetry and the approved well programme.',
+    });
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
@@ -368,12 +385,12 @@ export const TriageHero: React.FC = () => {
             </span>
           </span>
           <div className="flex items-center gap-2">
-            {risk.alertId && (
+            {(risk.alertId || (risk.riskLevel === 'high' || risk.riskLevel === 'critical')) && !acknowledged && (
               <button
-                onClick={() => void apiClient.acknowledgeAlert(risk.alertId!).then(() => setRisk({ ...risk, alertId: undefined, immediateAction: 'Alert acknowledged. Continue monitoring telemetry and the approved well programme.' }))}
+                onClick={() => void acknowledgeCurrentAlert()}
                 className="px-2 py-0.5 rounded border border-amber-700/60 text-[10px] font-mono text-amber-300 hover:bg-amber-950/50"
               >
-                Acknowledge alert
+                Acknowledge {risk.alertId ? 'alert' : 'demo alert'}
               </button>
             )}
             <span className="text-[11px] text-slate-500 font-mono">Layer 5 Alerting</span>
