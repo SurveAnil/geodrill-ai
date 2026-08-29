@@ -12,6 +12,7 @@ import logging
 import os
 import sqlite3
 import math
+import re
 from contextlib import contextmanager
 from typing import Generator, List, Optional, Dict, Any, Tuple, Sequence
 
@@ -674,6 +675,49 @@ class DatabaseService:
                 "SELECT * FROM events WHERE well_id = ? ORDER BY depth_m ASC",
                 (well_id,),
             ).fetchall()
+            return [dict(r) for r in rows]
+
+    def search_events(
+        self,
+        query: str,
+        limit: int = 10,
+        formation: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Keyword fallback for semantic retrieval when ChromaDB has no direct matches."""
+        text = (query or "").strip()
+        if not text:
+            return []
+
+        keywords = [token for token in re.split(r"[^a-zA-Z0-9/.-]+", text.lower()) if token and len(token) > 2]
+        if not keywords:
+            return []
+
+        clauses = []
+        params: list[Any] = []
+        for token in keywords[:8]:
+            clauses.append(
+                "(LOWER(e.event_type) LIKE ? OR LOWER(e.formation) LIKE ? OR LOWER(e.description) LIKE ? OR LOWER(e.symptom) LIKE ? OR LOWER(e.action_taken) LIKE ? OR LOWER(e.source_snippet) LIKE ?)"
+            )
+            pattern = f"%{token}%"
+            params.extend([pattern] * 6)
+
+        sql = """
+            SELECT e.*, w.latitude, w.longitude, w.operator, w.field_name
+            FROM events e
+            LEFT JOIN wells w ON w.well_id = e.well_id
+            WHERE (""" + " OR ".join(clauses) + """ )
+        """
+
+        if formation:
+            sql += " AND LOWER(e.formation) LIKE ?"
+            params.append(f"%{formation.strip().lower()}%")
+
+        sql += " ORDER BY e.depth_m DESC LIMIT ?"
+        params.append(int(limit))
+
+        with self.get_connection() as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(sql, params).fetchall()
             return [dict(r) for r in rows]
 
     def get_documents_needing_review(self) -> List[DocumentReviewItem]:

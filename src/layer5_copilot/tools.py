@@ -101,6 +101,36 @@ def search_knowledge_base_tool(
     return retriever.retrieve(query=query, top_k=top_k, formation=formation)
 
 
+def _score_fallback_match(query: str, event: Dict[str, Any]) -> int:
+    """Return a conservative keyword-overlap score for DB fallback candidates."""
+    query_tokens = {
+        token for token in re.findall(r"[a-z0-9]+", query.lower())
+        if token and len(token) > 2 and token not in {
+            "what", "when", "where", "which", "with", "from", "into", "have", "been", "that", "this", "there",
+            "them", "they", "your", "their", "about", "the", "and", "for", "into", "over", "under", "after",
+            "before", "while", "during", "using", "used", "when", "were", "will", "does", "did", "has", "have",
+            "should", "could", "would", "therefore", "because", "through", "across"
+        }
+    }
+    if not query_tokens:
+        return 0
+
+    event_text = " ".join(
+        str(value or "")
+        for value in (
+            event.get("event_type"),
+            event.get("formation"),
+            event.get("description"),
+            event.get("symptom"),
+            event.get("action_taken"),
+            event.get("source_snippet"),
+            event.get("well_id"),
+        )
+    ).lower()
+    event_tokens = set(re.findall(r"[a-z0-9]+", event_text))
+    return len(query_tokens & event_tokens)
+
+
 def answer_with_citations(
     query: str,
     retrieved_events: List[Dict[str, Any]],
@@ -111,10 +141,17 @@ def answer_with_citations(
     based strictly on retrieved drilling event records.
     """
     if not retrieved_events or len(retrieved_events) == 0:
-        return {
-            "answer": "Insufficient information: No recorded drilling incidents in the database match your query.",
-            "sources": [],
-        }
+        fallback_events = db_service.search_events(query=query, limit=5)
+        fallback_events = [
+            event for event in fallback_events if _score_fallback_match(query, event) > 0
+        ]
+        if fallback_events:
+            retrieved_events = fallback_events
+        else:
+            return {
+                "answer": "Insufficient information: No recorded drilling incidents in the database match your query.",
+                "sources": [],
+            }
 
     # Format context block
     context_lines = []

@@ -526,7 +526,15 @@ class MockLLMClient(LLMClient):
     """
 
     def extract(self, document_text: str, source_doc: str, extraction_method: ExtractionMethod) -> dict:
-        if "NWIS-DEMO-01" in document_text or "DEMO-NWIS-WCR-001" in document_text:
+        normalized_doc = (source_doc or "") + "\n" + (document_text or "")
+        normalized_doc_lower = normalized_doc.lower()
+
+        if (
+            "nwis-demo-01" in normalized_doc_lower
+            or "demo-nwis-wcr-001" in normalized_doc_lower
+            or "demo_nwis" in normalized_doc_lower
+            or "nwis" in normalized_doc_lower and "multi_event" in normalized_doc_lower
+        ):
             return {
                 "well_header": {
                     "well_id": "NWIS-DEMO-01",
