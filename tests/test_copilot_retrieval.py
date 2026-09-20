@@ -21,6 +21,7 @@ from src.layer4_knowledge_graph.vector_store import VectorStore, vector_store
 from src.layer4_knowledge_graph.hybrid_retriever import HybridRetriever, retriever
 from src.layer1_ingestion.document_pipeline import DocumentPipeline, pipeline
 from src.layer5_copilot.tools import answer_with_citations, validate_citations
+from src.layer5_copilot.llm_extractor import MockLLMClient
 from tests.generate_test_reports import generate_all_samples
 
 
@@ -126,6 +127,46 @@ def test_grounded_answer_with_citations(integrated_environment):
     assert "wcr_volve_15_9_f11b.pdf" in answer or "p. 3" in answer
     assert "LCM pill" in answer or "losses" in answer
     assert len(synthesis["sources"]) >= 1
+
+
+def test_demo_depth_hazard_query_summarizes_multiple_events():
+    events = [
+        {
+            "well_id": "NWIS-DEMO-01",
+            "event_type": "kick",
+            "depth_m": 2515.0,
+            "formation": "Hugin Demonstration Sand",
+            "description": "A gas kick caused a 12 bbl pit gain while drilling the Hugin Demonstration Sand.",
+            "action_taken": "Shut in on the annular BOP and circulated the influx using the Driller's Method.",
+            "source_doc": "demo_nwis_multi_event_report.pdf",
+            "source_page": 1,
+        },
+        {
+            "well_id": "NWIS-DEMO-01",
+            "event_type": "overpressure",
+            "depth_m": 2505.0,
+            "formation": "Hugin Demonstration Sand",
+            "description": "Connection gas and increasing flow-back indicated an overpressure warning.",
+            "action_taken": "Increased mud weight from 1.12 to 1.16 SG, verified trip margin, and monitored pit gain.",
+            "source_doc": "demo_nwis_multi_event_report.pdf",
+            "source_page": 1,
+        },
+    ]
+
+    query = "Which hazards were recorded near 2,505 m MD, and what mitigations were used?"
+    synthesis = answer_with_citations(
+        query=query,
+        retrieved_events=events,
+        client=MockLLMClient(),
+    )
+
+    answer = synthesis["answer"]
+    assert "kick" in answer.lower()
+    assert "overpressure" in answer.lower()
+    assert "annular BOP" in answer
+    assert "Increased mud weight" in answer
+    assert answer.count("[Well NWIS-DEMO-01, demo_nwis_multi_event_report.pdf, p. 1]") == 2
+    assert validate_citations(answer, events)
 
 
 def test_stuck_pipe_citation_grounding(integrated_environment):

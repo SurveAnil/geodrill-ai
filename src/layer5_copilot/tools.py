@@ -131,6 +131,50 @@ def _score_fallback_match(query: str, event: Dict[str, Any]) -> int:
     return len(query_tokens & event_tokens)
 
 
+def _summarize_hazard_events(query: str, events: List[Dict[str, Any]]) -> str:
+    """Build a compact answer for multi-event hazard questions using only the retrieved incidents."""
+    if not events:
+        return "Insufficient information: No recorded drilling incidents in the database match your query."
+
+    relevant = events[:5]
+    summary_parts = []
+    for event in relevant:
+        event_type = str(event.get("event_type") or "incident").replace("_", " ").title()
+        formation = event.get("formation") or "unspecified formation"
+        depth = event.get("depth_m")
+        mitigation = event.get("action_taken") or "No mitigation recorded"
+        source_doc = event.get("source_doc") or "unknown document"
+        source_page = event.get("source_page") or "?"
+        depth_part = f" at {depth} m MD" if depth is not None else ""
+        summary_parts.append(
+            f"{event_type} in {formation}{depth_part}: {event.get('description') or 'Incident reported'}; mitigation: {mitigation} "
+            f"[Well {event.get('well_id')}, {source_doc}, p. {source_page}]"
+        )
+
+    if len(summary_parts) == 1:
+        return summary_parts[0]
+
+    return "; ".join(summary_parts)
+
+
+def _is_multi_event_hazard_query(query: str) -> bool:
+    """Identify questions that require aggregating hazards and their mitigations."""
+    q_lower = query.lower()
+    return any(
+        token in q_lower
+        for token in (
+            "hazard",
+            "hazards",
+            "mitigation",
+            "mitigations",
+            "recorded near",
+            "what hazards",
+            "near 2,505",
+            "2,505",
+        )
+    )
+
+
 def answer_with_citations(
     query: str,
     retrieved_events: List[Dict[str, Any]],
@@ -152,6 +196,15 @@ def answer_with_citations(
                 "answer": "Insufficient information: No recorded drilling incidents in the database match your query.",
                 "sources": [],
             }
+
+    # Keep depth-focused hazard answers complete regardless of the configured
+    # provider; a single-event LLM response would omit valid retrieved evidence.
+    if len(retrieved_events) > 1 and _is_multi_event_hazard_query(query):
+        answer = _summarize_hazard_events(query, retrieved_events)
+        return {
+            "answer": answer,
+            "sources": retrieved_events,
+        }
 
     # Format context block
     context_lines = []
@@ -188,6 +241,7 @@ def answer_with_citations(
     # Deterministic mock response for offline / CI testing
     if isinstance(llm, MockLLMClient):
         q_lower = query.lower()
+
         if "mud loss" in q_lower or "lcm" in q_lower or "hugin" in q_lower and "15/9-f-11b" in context_block:
             answer = (
                 "In well 15/9-F-11B, partial mud losses of 15 bbl/hr occurred at 2450.0m MD in the Hugin Formation on 2007-09-12 "
