@@ -25,7 +25,31 @@ export interface AlertEvaluationResponse {
   recommendations: Array<{ action: string; rationale: string; priority: string }>;
   evidence_found: boolean;
 }
-export interface NearbyWell { well_id?: string; name?: string; distance_km?: number; latitude?: number; longitude?: number; hazard?: string; status?: string }
+export interface NearbyWell {
+  well_id: string;
+  name?: string;
+  operator?: string;
+  field_name?: string;
+  current_depth_m?: number;
+  current_formation?: string;
+  total_depth_m?: number;
+  distance_km: number;
+  latitude: number;
+  longitude: number;
+  hazard?: string;
+  status?: 'safe' | 'warning' | 'critical' | string;
+}
+export interface WellRecord {
+  well_id: string;
+  operator?: string;
+  field_name?: string;
+  status?: string;
+  current_depth_m?: number;
+  current_formation?: string;
+  latitude?: number;
+  longitude?: number;
+  total_depth_m?: number;
+}
 export interface IncidentEvent { event_id?: number; well_id?: string; depth_m?: number; formation?: string; event_type?: string; severity?: string; description?: string; source_snippet?: string; mitigation?: string; key_lesson?: string; source_doc?: string; date?: string }
 export interface CopilotResponse { query: string; normalized_query: string; answer: string; sources: Array<{ source_doc?: string; source_page?: number; well_id?: string; snippet?: string }> }
 export interface FormationCorrelationResponse { correlations: Array<Record<string, unknown>>; explanation: string }
@@ -41,6 +65,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const apiClient = {
+  listWells() {
+    return request<WellRecord[]>('/api/v1/wells');
+  },
   ingestTelemetry(points: TelemetryPoint[]) {
     return request<{ accepted: number }>('/api/v1/telemetry', { method: 'POST', body: JSON.stringify({ points }) });
   },
@@ -65,7 +92,9 @@ export const apiClient = {
   nearbyWells(lat: number, lon: number, radiusKm = 10, excludeWellId?: string) {
     const params = new URLSearchParams({ lat: String(lat), lon: String(lon), radius_km: String(radiusKm) });
     if (excludeWellId) params.set('exclude_well_id', excludeWellId);
-    return request<NearbyWell[]>(`/api/v1/wells/nearby?${params}`);
+    return request<{ wells: NearbyWell[] } | NearbyWell[]>(`/api/v1/wells/nearby?${params}`).then((response) =>
+      Array.isArray(response) ? response : response.wells
+    );
   },
   correlateIncidents(wellId: string, depthM: number, formation?: string) {
     const params = new URLSearchParams({ well_id: wellId, depth_m: String(depthM), window_m: '100' });

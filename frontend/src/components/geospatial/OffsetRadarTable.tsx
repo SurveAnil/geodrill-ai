@@ -11,37 +11,12 @@ export interface OffsetWellItem {
   status: 'critical' | 'warning' | 'safe';
   lat: number;
   lon: number;
+  operator?: string;
+  field_name?: string;
+  current_depth_m?: number;
+  current_formation?: string;
+  total_depth_m?: number;
 }
-
-export const OFFSET_WELLS: OffsetWellItem[] = [
-  {
-    id: 'w-1',
-    name: 'ONGC-KG-07-ALOK',
-    distanceKm: 2.4,
-    hazard: 'Severe Mud Loss (65 bbl/hr @ 2450m)',
-    status: 'critical',
-    lat: 16.262,
-    lon: 82.368,
-  },
-  {
-    id: 'w-2',
-    name: 'ONGC-KG-12-BRAVO',
-    distanceKm: 5.1,
-    hazard: 'Gas Kick / Influx (12 bbl @ 2510m)',
-    status: 'warning',
-    lat: 16.221,
-    lon: 82.385,
-  },
-  {
-    id: 'w-3',
-    name: 'ONGC-KG-04-DELTA',
-    distanceKm: 8.3,
-    hazard: 'Normal Drilling (No Major Loss)',
-    status: 'safe',
-    lat: 16.295,
-    lon: 82.312,
-  },
-];
 
 const STATUS_CONFIG = {
   critical: {
@@ -74,19 +49,21 @@ interface OffsetRadarTableProps {
   onSelectWell?: (well: OffsetWellItem) => void;
   selectedWellId?: string;
   wells?: OffsetWellItem[];
+  radiusKm?: number;
 }
 
 export const OffsetRadarTable: React.FC<OffsetRadarTableProps> = ({
   onSelectWell,
   selectedWellId,
-  wells = OFFSET_WELLS,
+  wells = [],
+  radiusKm = 10,
 }) => {
   return (
     <div className="w-full flex flex-col">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
           <Navigation className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Offset Wells Radar (10 km Radius)</span>
+          <span>Offset Wells Radar ({radiusKm} km Radius)</span>
         </div>
         <span className="text-[10px] font-mono text-slate-500">{wells.length} Wells In Range</span>
       </div>

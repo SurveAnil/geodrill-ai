@@ -84,6 +84,36 @@ def test_health_endpoints_and_request_id(test_client):
     assert len(generated.headers["x-request-id"]) == 36
 
 
+@pytest.mark.parametrize("origin", ["http://localhost:3000", "http://127.0.0.1:3000"])
+def test_cors_preflight_allows_local_frontend_origins(test_client, origin):
+    response = test_client.options(
+        "/api/v1/wells",
+        headers={
+            "Origin": origin,
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "content-type, authorization",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == origin
+    assert "GET" in response.headers["access-control-allow-methods"]
+    assert "content-type" in response.headers["access-control-allow-headers"].lower()
+    assert "authorization" in response.headers["access-control-allow-headers"].lower()
+
+
+def test_cors_preflight_rejects_unconfigured_origin(test_client):
+    response = test_client.options(
+        "/api/v1/wells",
+        headers={
+            "Origin": "http://malicious.example",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+
+    assert response.status_code == 400
+
+
 def test_process_file_offset_ddr_pdf(test_client, setup_samples):
     ddr_pdf_path = os.path.join(setup_samples, "ddr_volve_15_9_f12.pdf")
     assert os.path.exists(ddr_pdf_path)

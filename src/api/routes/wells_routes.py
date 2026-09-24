@@ -15,6 +15,25 @@ from starlette.concurrency import run_in_threadpool
 router = APIRouter(prefix="/wells", tags=["Wells & Geospatial Intelligence"])
 
 
+@router.get("", summary="List registered wells")
+async def list_registered_wells() -> List[Dict[str, Any]]:
+    return await run_in_threadpool(db_service.list_wells)
+
+
+@router.get("/{well_id:path}/formations", summary="Get formation tops for a well")
+async def get_well_formations(well_id: str) -> List[Dict[str, Any]]:
+    if not await run_in_threadpool(db_service.well_exists, well_id):
+        raise HTTPException(status_code=404, detail=f"Well '{well_id}' not found.")
+    return await run_in_threadpool(db_service.get_well_formations, well_id)
+
+
+@router.get("/{well_id:path}/programs", summary="Get casing, cementing, and mud programs")
+async def get_well_programs(well_id: str) -> Dict[str, List[Dict[str, Any]]]:
+    if not await run_in_threadpool(db_service.well_exists, well_id):
+        raise HTTPException(status_code=404, detail=f"Well '{well_id}' not found.")
+    return await run_in_threadpool(db_service.get_well_program, well_id)
+
+
 @router.get("/nearby", summary="Find offset wells within a physical distance radius")
 async def get_wells_nearby(
     lat: float = Query(..., description="Latitude of reference point in decimal degrees (-90 to 90)"),

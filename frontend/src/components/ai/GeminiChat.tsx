@@ -25,22 +25,22 @@ const INITIAL_MESSAGES: ChatMessage[] = [
   {
     id: 'msg-1',
     sender: 'user',
-    text: 'What caused the NPT on offset well KG-07 at 3,200m?',
+    text: 'What caused the NPT on offset well OIL-NWIS-03 near 3,096m?',
     timestamp: '14:32',
   },
   {
     id: 'msg-2',
     sender: 'assistant',
-    text: 'Based on the parsed WCR for ONGC-KG-07-ALOK, the NPT was caused by a severe mud loss of 65 bbl/hr at 3,180m MD within the permeable sandstone layer. The crew mitigated it by spotting a 40 bbl LCM pill (calcium carbonate blend) and reducing annular flow rate. Recommendation: Maintain standby LCM volume and closely monitor ECD.',
+    text: 'The seed incident for OIL-NWIS-03 records stuck pipe near 3,096m in Northwind Sandstone. The crew worked the string with jars and circulated clean before resuming drilling. Recommendation: maintain rotation and monitor torque across the shale streak.',
     timestamp: '14:32',
-    citation: 'Source: WCR ONGC-KG-07-ALOK, Section 4.2 (p. 18)',
+    citation: 'Source: seed_oil_nwis_foundation_v1, OIL-NWIS-03 (p. 8)',
   },
 ];
 
 const QUICK_PROMPTS = [
-  'Show casing program for KG-12',
-  'Any kicks reported in Krishna Sand-B?',
-  'Correlate mud loss in Hugin Formation',
+  'Show casing program for OIL-NWIS-02',
+  'Any kicks reported in Northwind Sandstone?',
+  'Correlate mud loss in Northwind Sandstone',
   'Recommended mud weight window ahead',
 ];
 
@@ -88,16 +88,16 @@ export const GeminiChat: React.FC = () => {
 
       if (query.toLowerCase().includes('casing')) {
         aiResponseText =
-          'Well KG-12 set a 9-5/8" intermediate casing string at 2,420m TVD just above the overpressured transition zone, cemented with 1.90 SG lead slurry to surface.';
-        citationText = 'Source: DDR KG-12-BRAVO, Casing Summary Section (p. 4)';
-      } else if (query.toLowerCase().includes('kick') || query.toLowerCase().includes('krishna')) {
+          'OIL-NWIS-02 set the intermediate casing program above the Northwind Sandstone evidence window and verified cement integrity before drilling ahead.';
+        citationText = 'Source: seed_oil_nwis_foundation_v1, OIL-NWIS-02 casing program';
+      } else if (query.toLowerCase().includes('kick')) {
         aiResponseText =
-          'Yes. KG-12 encountered a 12 bbl gas kick at 2,510m MD in the upper sand lobe. Pit gain was recognized within 90 seconds, shut in on annular preventer with 380 psi SICP.';
-        citationText = 'Source: Incident Report KG-12 (2008), Event #14';
-      } else if (query.toLowerCase().includes('hugin') || query.toLowerCase().includes('loss')) {
+          'Yes. OIL-NWIS-02 encountered an influx near 3,118m MD in Northwind Sandstone. The crew performed a flow check and shut in on the annular preventer.';
+        citationText = 'Source: seed_oil_nwis_foundation_v1, OIL-NWIS-02 (p. 12)';
+      } else if (query.toLowerCase().includes('loss')) {
         aiResponseText =
-          'Historical logs for 15/9-F-11B show 15 bbl/hr seepage losses in Hugin sandstone (2450m). Losses were controlled using 50 bbl of 40 ppb LCM pill.';
-        citationText = 'Source: WCR Volve 15/9-F-11B (p. 3)';
+          'OIL-NWIS-04 recorded reduced returns near 3,172m in Northwind Sandstone. The response was to reduce pump rate and apply the approved loss-circulation treatment.';
+        citationText = 'Source: seed_oil_nwis_foundation_v1, OIL-NWIS-04 (p. 15)';
       }
 
       const assistantMsg: ChatMessage = {

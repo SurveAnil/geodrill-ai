@@ -61,6 +61,7 @@ class DrillingEvent(BaseModel):
     """One incident / lesson-learned record, extracted from narrative text."""
     well_id: str = Field(..., description="Must match the WellHeader.well_id for this document")
     event_type: EventType
+    severity: Optional[str] = Field(None, description="Operational severity classification")
     depth_m: Optional[float] = Field(None, description="Measured depth in metres, null if not stated")
     formation: Optional[str] = None
     event_date: Optional[date] = None

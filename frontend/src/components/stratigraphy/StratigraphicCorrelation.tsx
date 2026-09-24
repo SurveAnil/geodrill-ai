@@ -6,8 +6,8 @@ import { useDrillStore } from '@/store/useDrillStore';
 import { apiClient } from '@/lib/api';
 
 // Geological Depth Bounds for the correlation window
-const MIN_DEPTH = 2200;
-const MAX_DEPTH = 3000;
+const MIN_DEPTH = 2800;
+const MAX_DEPTH = 3500;
 const TOTAL_DEPTH_SPAN = MAX_DEPTH - MIN_DEPTH;
 
 interface FormationBlock {
@@ -23,44 +23,44 @@ interface FormationBlock {
 
 const OFFSET_FORMATIONS: FormationBlock[] = [
   {
-    name: 'Chalk / Shetland Group',
-    shortName: 'Chalk Gp',
-    topM: 2200,
-    bottomM: 2420,
+    name: 'Harbour Shale',
+    shortName: 'Harbour Shale',
+    topM: 2800,
+    bottomM: 3025,
     colorBg: 'bg-slate-800/80',
     borderColor: 'border-slate-700',
     textColor: 'text-slate-300',
-    lithology: 'Dense Limestone / Chalk',
+    lithology: 'Shale and siltstone',
   },
   {
-    name: 'Hugin Formation / Krishna Sand-B',
-    shortName: 'Hugin / Krishna Sand-B',
-    topM: 2420,
-    bottomM: 2750,
+    name: 'Northwind Sandstone',
+    shortName: 'Northwind Sandstone',
+    topM: 3025,
+    bottomM: 3380,
     colorBg: 'bg-amber-950/40',
     borderColor: 'border-amber-700/60',
     textColor: 'text-amber-300',
-    lithology: 'Porous Sandstone (Hydrocarbon Bearing)',
+    lithology: 'Porous reservoir sandstone',
   },
   {
-    name: 'Skagerrak Formation',
-    shortName: 'Skagerrak Fm',
-    topM: 2750,
-    bottomM: 3000,
+    name: 'Northwind Sandstone Base',
+    shortName: 'Sandstone Base',
+    topM: 3380,
+    bottomM: 3500,
     colorBg: 'bg-teal-950/40',
     borderColor: 'border-teal-700/60',
     textColor: 'text-teal-300',
-    lithology: 'Interbedded Sandstone & Claystone',
+    lithology: 'Interbedded sandstone and claystone',
   },
 ];
 
 // Severe Hazard Horizon Overlay (2440m - 2500m)
 const HAZARD_HORIZON = {
-  name: 'Severe Mud Loss Horizon',
-  topM: 2440,
-  bottomM: 2500,
-  lossRate: '65 bbl/hr',
-  citation: 'Offset ONGC-KG-07 @ 2450m',
+  name: 'Comparable Mud Loss Horizon',
+  topM: 3150,
+  bottomM: 3190,
+  lossRate: 'Northwind offset evidence',
+  citation: 'OIL-NWIS-04 @ 3172m',
 };
 
 export const StratigraphicCorrelation: React.FC = () => {
@@ -69,9 +69,16 @@ export const StratigraphicCorrelation: React.FC = () => {
   const currentMD = telemetry.measuredDepthM;
   useEffect(() => {
     let cancelled = false;
+    const formationTops = OFFSET_FORMATIONS
+      .filter((formation) => formation.topM <= currentMD)
+      .map((formation) => ({ formation_name: formation.name, top_depth_m: formation.topM }));
+    if (!formationTops.length) {
+      setCorrelationLabel('Demo correlation (no formation tops reached)');
+      return () => { cancelled = true; };
+    }
     apiClient.correlateFormations(
       [{ md: 0, inclination: 0, azimuth: 0 }, { md: currentMD, inclination: 5, azimuth: 90 }],
-      OFFSET_FORMATIONS.map((formation) => ({ formation_name: formation.name, top_depth_m: formation.topM })),
+      formationTops,
     ).then((response) => {
       if (!cancelled) setCorrelationLabel(`Backend trajectory correlation • ${response.correlations.length} tops`);
     }).catch(() => {
@@ -173,10 +180,10 @@ export const StratigraphicCorrelation: React.FC = () => {
             </div>
           </div>
 
-          {/* TRACK 2: Offset Well (ONGC-KG-07 / 15/9-F-12) with Geological Formations */}
+          {/* TRACK 2: Northwind offset well with geological formations */}
           <div className="relative flex flex-col h-full bg-[#0A101D] rounded-lg border border-slate-800 p-2 overflow-hidden">
             <div className="text-[10px] font-mono font-semibold text-amber-400 pb-1 border-b border-slate-800/80 flex items-center justify-between">
-              <span>OFFSET: ONGC-KG-07-ALOK</span>
+              <span>OFFSET: OIL-NWIS-04</span>
               <span className="text-[9px] text-slate-500 uppercase">2.4 km</span>
             </div>
 

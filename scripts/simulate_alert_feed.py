@@ -9,7 +9,7 @@ Generates real-time alerts whenever upcoming historical incidents from offset
 wells cross into MEDIUM or HIGH risk levels.
 
 Usage:
-    python scripts/simulate_alert_feed.py [--well-id 15/9-F-13] [--start 2300] [--stop 2900] [--step 20]
+    python scripts/simulate_alert_feed.py [--well-id OIL-NWIS-01] [--start 3000] [--stop 3415] [--step 20]
 """
 
 from __future__ import annotations
@@ -29,9 +29,9 @@ from src.layer5_copilot.risk_scorer import score_risk
 
 
 def simulate_drilling_run(
-    active_well_id: str = "15/9-F-13",
-    start_depth_m: float = 2300.0,
-    stop_depth_m: float = 2900.0,
+    active_well_id: str = "OIL-NWIS-01",
+    start_depth_m: float = 3000.0,
+    stop_depth_m: float = 3415.0,
     step_m: float = 20.0,
     lookahead_m: float = 50.0,
     formation: Optional[str] = None,
@@ -101,9 +101,9 @@ def simulate_drilling_run(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Simulate real-time depth alert feed.")
-    parser.add_argument("--well-id", default="15/9-F-13", help="Active well identifier")
-    parser.add_argument("--start", type=float, default=2300.0, help="Starting depth in metres")
-    parser.add_argument("--stop", type=float, default=2900.0, help="Ending depth in metres")
+    parser.add_argument("--well-id", default="OIL-NWIS-01", help="Active well identifier")
+    parser.add_argument("--start", type=float, default=3000.0, help="Starting depth in metres")
+    parser.add_argument("--stop", type=float, default=3415.0, help="Ending depth in metres")
     parser.add_argument("--step", type=float, default=20.0, help="Depth step in metres")
     parser.add_argument("--lookahead", type=float, default=50.0, help="Lookahead distance in metres")
     parser.add_argument("--formation", default=None, help="Target formation filter")
