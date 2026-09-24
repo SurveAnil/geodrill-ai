@@ -227,8 +227,9 @@ Planning guidance, not implemented scope: retain a deterministic synthetic North
 - Intended target repository: `C:\Users\Anil\Desktop\geodrill-ai`.
 - Previous baseline: `main` / `origin/main`.
 - Intended Phase 1 commit message: `feat: complete Phase 1 NWIS operational foundation`.
+- Phase 1 commit: `75b1a8d`.
+- Remote branch: `origin/agents/project-restructuring-plan`.
 - Never commit directly to `main`; push only `agents/project-restructuring-plan` after verification.
-- Record the final commit hash and remote state here after the target repository commit/push.
 
 ## 25. Handoff rules for future agents
 
