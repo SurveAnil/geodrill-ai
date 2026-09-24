@@ -199,6 +199,74 @@ Reported attributes `bis_skin_checked`, `bis_register`, `data-new-gr-c-s-check-l
 
 Relevant existing surfaces include `src/layer4_knowledge_graph/`, `src/layer5_copilot/`, incident/trajectory routes, `frontend/src/components/ai/`, lessons, stratigraphy, and tests. Preserve Phase 1 API contracts and Northwind determinism.
 
+## 21A. Agreed implementation roadmap after Phase 1
+
+This is the planned sequence discussed for the remaining GeoDrill build. It is a roadmap only; no phase below Phase 1 is implemented by this handoff.
+
+### Phase 2 — NWIS data model and seed dataset
+
+- Formalize the NWIS entities and relationships around wells, offsets, formations, programs, incidents, documents, evidence, telemetry, risk, and alerts.
+- Keep the deterministic Northwind scenario as the operational demo fixture.
+- Add explicit dataset, field, source, and provenance identifiers before adding more data.
+- Expand the seed only when every new record has a clear well, depth/formation relationship, and evidence path.
+- Preserve idempotent initialization and backward-compatible API contracts.
+
+### Phase 3 — Offset-well intelligence
+
+- Strengthen nearby-well ranking using distance, comparable measured depth, formation, trajectory, and event similarity.
+- Return explainable comparison factors and evidence, not an opaque score.
+- Extend the existing nearby-well and incident-correlation routes rather than creating parallel operational APIs.
+- Validate radius, depth-window, formation, empty-result, and invalid-well behavior with deterministic tests.
+
+### Phase 4 — Document intelligence and RAG
+
+- Improve PDF, DOCX, LAS, and WITSML ingestion with stable document/source/page/snippet metadata.
+- Add explicit dataset/field/well filtering to Chroma and hybrid retrieval.
+- Add OCR and NER only behind confidence/manual-review guardrails; do not silently treat low-confidence extraction as fact.
+- Ground Copilot responses in scoped evidence and expose citations in the UI.
+
+### Phase 5 — Depth and formation correlation
+
+- Connect formation tops, survey intervals, event depths, and offset-well comparisons into one validated correlation contract.
+- Support formation-aware event windows and explicit handling for unreached formations or out-of-survey depths.
+- Preserve backend validation; fix invalid payload construction in clients rather than weakening schemas.
+- Add regression coverage for depth/formation transitions and active-well changes.
+
+### Phase 6 — Hybrid risk intelligence
+
+- Evolve `heuristic-baseline-v1` into transparent hybrid reasoning that combines rules, historical evidence, and validated statistical/ML signals where justified.
+- Keep risk explanations, source evidence, confidence, and recommended action separate.
+- Calibrate against curated validation data before presenting model-derived probabilities as operational guidance.
+- Do not call an unvalidated model production ML.
+
+### Phase 7 — Telemetry and proactive alerts
+
+- Replace process-local simulated streams with a stable telemetry ingestion contract that can later accept eRTMAC/external data.
+- Add durable, auditable alert state transitions: monitoring, active, acknowledged, resolved, escalated.
+- Preserve DEMO/SIMULATED labels and keep external notification integrations out of the core until contracts and security are defined.
+- Test delayed, missing, duplicated, and out-of-order telemetry.
+
+### Phase 8 — Grounded AI Copilot
+
+- Make the Copilot context derive from the same active-well, depth, formation, risk, alert, and evidence contracts used by the UI.
+- Add scoped retrieval, citation verification, uncertainty language, and refusal behavior for unsupported claims.
+- Support operational questions such as comparable offset hazards and recommended mitigations without mixing unrelated Volve/legacy records into Northwind answers.
+- Measure answer grounding and retrieval quality on a curated evaluation set.
+
+### Phase 9 — End-to-end demo and hardening
+
+- Validate the complete flow from well selection through offsets, stratigraphy, lessons, telemetry, risk, alerts, and Copilot.
+- Add reproducible startup/seed instructions, environment checks, health diagnostics, and failure-state UX.
+- Run backend, frontend, contract, browser, security, and data-isolation checks.
+- Freeze the demo dataset and record known limitations before any production deployment or external integration.
+
+### Cross-phase gates
+
+- Do not begin a later phase until the preceding phase has tests, documented API/data contracts, and a reproducible validation result.
+- Do not mix synthetic Northwind operational data with curated real data without explicit dataset/source labels and retrieval filters.
+- Do not introduce production eRTMAC, trained ML, production PostgreSQL, external notifications, or unrestricted OCR/RAG as shortcuts.
+- Every phase must preserve the canonical active-well context, environment-based API configuration, and working Leaflet map.
+
 ## 22. Dataset strategy
 
 Planning guidance, not implemented scope: retain a deterministic synthetic Northwind scenario for the SIH demo and add a separately labelled curated real dataset for validation/research. Start small: one active well, 3–6 offsets, 10–30 historical wells, 50–200 events, formation tops, DDRs, selected logs, and 20–100 documents. Never mix datasets without explicit source/field labels.
