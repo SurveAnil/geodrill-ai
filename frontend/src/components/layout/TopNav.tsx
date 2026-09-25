@@ -3,35 +3,26 @@
 import React, { useEffect } from 'react';
 import {
   Activity,
-  Play,
-  Pause,
   Compass,
   Layers,
-  ChevronDown,
-  Sparkles,
-  Radio,
-  SlidersHorizontal,
+  Menu,
 } from 'lucide-react';
-import { useDrillStore, SCENARIO_PRESETS, ScenarioType } from '@/store/useDrillStore';
+import { useDrillStore } from '@/store/useDrillStore';
 import { apiClient, toTelemetryPoint } from '@/lib/api';
 
-export const TopNav: React.FC = () => {
+export const TopNav: React.FC<{ onMenuOpen?: () => void }> = ({ onMenuOpen }) => {
   const {
     activeWellId,
+    wellName,
     field,
-    operator,
     telemetry,
-    risk,
     isSimulating,
     isStreaming10Hz,
-    selectedScenario,
-    setScenario,
-    toggleSimulation,
-    toggle10HzStream,
     stepSimulation,
     setRisk,
     setBackendStatus,
     backendStatus,
+    alertCount,
   } = useDrillStore();
 
   // 10Hz live simulation ticker
@@ -97,6 +88,7 @@ export const TopNav: React.FC = () => {
       <div className="max-w-[1920px] mx-auto px-4 py-2.5 flex items-center justify-between gap-4">
         {/* Left: Branding & Active Rig Metadata */}
         <div className="flex items-center gap-4">
+          <button onClick={onMenuOpen} className="rounded border border-slate-700 p-1.5 text-slate-300 md:hidden" aria-label="Open navigation"><Menu className="h-4 w-4" /></button>
           <div className="flex items-center gap-2.5">
             <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
               <Compass className="w-5 h-5 text-white animate-spin-slow" />
@@ -104,14 +96,14 @@ export const TopNav: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-base tracking-wider text-white">
-                  eRTMAC<span className="text-cyan-400">-NWIS</span>
+                  Geo<span className="text-cyan-400">Drill</span>
                 </span>
                 <span className="px-1.5 py-0.5 rounded text-[10px] font-mono uppercase font-semibold bg-cyan-950/80 text-cyan-300 border border-cyan-800/60">
                   v2.4 RT
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 leading-none">
-                AI-Powered Offset Well Intelligence
+                NWIS drilling intelligence
               </p>
             </div>
           </div>
@@ -123,7 +115,7 @@ export const TopNav: React.FC = () => {
             <div className="h-2 w-2 rounded-full bg-cyan-400" />
             <div className="text-xs">
               <span className="text-slate-400">Well: </span>
-              <span className="font-semibold text-white font-mono">{activeWellId}</span>
+              <span className="font-semibold text-white font-mono">{wellName || activeWellId}</span>
               <span className="text-slate-500 mx-1.5">•</span>
               <span className="text-slate-400">{field}</span>
             </div>
@@ -155,76 +147,16 @@ export const TopNav: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: State Simulator & Live 10Hz Controls */}
+        {/* Right: global connection and operating mode only */}
         <div className="flex items-center gap-3">
-          {/* State Simulator Scenario Dropdown */}
-          <div className="flex items-center bg-[#111A2E] rounded-lg border border-slate-800 p-1">
-            <div className="flex items-center gap-1.5 px-2 text-slate-400">
-              <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="text-[11px] font-medium hidden md:inline">Scenario:</span>
-            </div>
-            <select
-              value={selectedScenario}
-              onChange={(e) => setScenario(e.target.value as ScenarioType)}
-              className="bg-[#090D16] text-white text-xs font-medium rounded px-2.5 py-1 border border-slate-700/60 focus:outline-none focus:border-cyan-500 cursor-pointer"
-            >
-              {Object.entries(SCENARIO_PRESETS).map(([key, item]) => (
-                <option key={key} value={key} className="bg-[#0F172A] text-white">
-                  {item.name}
-                </option>
-              ))}
-            </select>
-
-            {/* Run / Pause Simulator Button */}
-            <button
-              onClick={toggleSimulation}
-              title={isSimulating ? 'Pause 10Hz Drill Simulation' : 'Start 10Hz Drill Simulation'}
-              className={`ml-1.5 px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                isSimulating
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30'
-                  : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30'
-              }`}
-            >
-              {isSimulating ? (
-                <>
-                  <Pause className="w-3 h-3 fill-current" />
-                  <span className="hidden sm:inline">Pause</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-3 h-3 fill-current" />
-                  <span className="hidden sm:inline">Simulate</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* 10Hz Stream Status Badge */}
-          <button
-            onClick={toggle10HzStream}
-            title="Click to toggle 10Hz Telemetry Stream"
-            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs font-mono transition-all ${
-              isStreaming10Hz
-                ? 'bg-emerald-950/40 text-emerald-300 border-emerald-800/80 shadow-sm shadow-emerald-900/20'
-                : 'bg-slate-900 text-slate-400 border-slate-800'
-            }`}
-          >
-            <span className="relative flex h-2 w-2">
-              {isStreaming10Hz && (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              )}
-              <span
-                className={`relative inline-flex rounded-full h-2 w-2 ${
-                  isStreaming10Hz ? 'bg-emerald-400' : 'bg-slate-500'
-                }`}
-              />
-            </span>
-            <span className="font-semibold text-[11px]">
-              {isStreaming10Hz ? 'LIVE 10Hz' : 'OFFLINE'}
-            </span>
-          </button>
-          <span className={`text-[10px] font-mono ${backendStatus === 'online' ? 'text-emerald-400' : backendStatus === 'unavailable' ? 'text-amber-400' : 'text-slate-500'}`}>
-            API: {backendStatus === 'online' ? 'CONNECTED' : backendStatus === 'unavailable' ? 'DEMO FALLBACK' : 'DEMO'}
+          <span className="rounded border border-amber-800/70 bg-amber-950/40 px-2 py-1 text-[10px] font-mono font-semibold text-amber-300">
+            DEMO / SIMULATED
+          </span>
+          <span className="rounded border border-slate-700 px-2 py-1 text-[10px] font-mono text-slate-300">
+            Alerts: {alertCount}
+          </span>
+          <span className={`flex items-center gap-1 text-[9px] font-mono sm:text-[10px] ${backendStatus === 'online' ? 'text-emerald-400' : backendStatus === 'unavailable' ? 'text-amber-400' : 'text-slate-500'}`}>
+            <span className="h-1.5 w-1.5 rounded-full bg-current" /> API: {backendStatus === 'online' ? 'CONNECTED' : backendStatus === 'unavailable' ? 'UNAVAILABLE' : 'DEMO'}
           </span>
         </div>
       </div>

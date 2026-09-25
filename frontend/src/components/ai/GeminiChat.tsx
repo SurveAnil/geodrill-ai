@@ -11,6 +11,8 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { useSearchParams } from 'next/navigation';
+import { useDrillStore } from '@/store/useDrillStore';
 
 interface ChatMessage {
   id: string;
@@ -25,29 +27,32 @@ const INITIAL_MESSAGES: ChatMessage[] = [
   {
     id: 'msg-1',
     sender: 'user',
-    text: 'What caused the NPT on offset well KG-07 at 3,200m?',
+    text: 'What caused the NPT on offset well OIL-NWIS-03 near 3,096m?',
     timestamp: '14:32',
   },
   {
     id: 'msg-2',
     sender: 'assistant',
-    text: 'Based on the parsed WCR for ONGC-KG-07-ALOK, the NPT was caused by a severe mud loss of 65 bbl/hr at 3,180m MD within the permeable sandstone layer. The crew mitigated it by spotting a 40 bbl LCM pill (calcium carbonate blend) and reducing annular flow rate. Recommendation: Maintain standby LCM volume and closely monitor ECD.',
+    text: 'The seed incident for OIL-NWIS-03 records stuck pipe near 3,096m in Northwind Sandstone. The crew worked the string with jars and circulated clean before resuming drilling. Recommendation: maintain rotation and monitor torque across the shale streak.',
     timestamp: '14:32',
-    citation: 'Source: WCR ONGC-KG-07-ALOK, Section 4.2 (p. 18)',
+    citation: 'Source: seed_oil_nwis_foundation_v1, OIL-NWIS-03 (p. 8)',
   },
 ];
 
 const QUICK_PROMPTS = [
-  'Show casing program for KG-12',
-  'Any kicks reported in Krishna Sand-B?',
-  'Correlate mud loss in Hugin Formation',
+  'Show casing program for OIL-NWIS-02',
+  'Any kicks reported in Northwind Sandstone?',
+  'Correlate mud loss in Northwind Sandstone',
   'Recommended mud weight window ahead',
 ];
 
 export const GeminiChat: React.FC = () => {
+  const searchParams = useSearchParams();
+  const telemetry = useDrillStore((state) => state.telemetry);
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
   const [inputQuery, setInputQuery] = useState('');
   const [isAiThinking, setIsAiThinking] = useState(false);
+  const [appliedDeepLink, setAppliedDeepLink] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -57,6 +62,11 @@ export const GeminiChat: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isAiThinking]);
+
+  useEffect(() => {
+    const prompt = searchParams.get('prompt');
+    if (prompt && prompt !== appliedDeepLink) { setInputQuery(prompt); setAppliedDeepLink(prompt); }
+  }, [searchParams, appliedDeepLink]);
 
   const handleSendMessage = async (textToSend?: string) => {
     const query = textToSend || inputQuery;
@@ -88,16 +98,16 @@ export const GeminiChat: React.FC = () => {
 
       if (query.toLowerCase().includes('casing')) {
         aiResponseText =
-          'Well KG-12 set a 9-5/8" intermediate casing string at 2,420m TVD just above the overpressured transition zone, cemented with 1.90 SG lead slurry to surface.';
-        citationText = 'Source: DDR KG-12-BRAVO, Casing Summary Section (p. 4)';
-      } else if (query.toLowerCase().includes('kick') || query.toLowerCase().includes('krishna')) {
+          'OIL-NWIS-02 set the intermediate casing program above the Northwind Sandstone evidence window and verified cement integrity before drilling ahead.';
+        citationText = 'Source: seed_oil_nwis_foundation_v1, OIL-NWIS-02 casing program';
+      } else if (query.toLowerCase().includes('kick')) {
         aiResponseText =
-          'Yes. KG-12 encountered a 12 bbl gas kick at 2,510m MD in the upper sand lobe. Pit gain was recognized within 90 seconds, shut in on annular preventer with 380 psi SICP.';
-        citationText = 'Source: Incident Report KG-12 (2008), Event #14';
-      } else if (query.toLowerCase().includes('hugin') || query.toLowerCase().includes('loss')) {
+          'Yes. OIL-NWIS-02 encountered an influx near 3,118m MD in Northwind Sandstone. The crew performed a flow check and shut in on the annular preventer.';
+        citationText = 'Source: seed_oil_nwis_foundation_v1, OIL-NWIS-02 (p. 12)';
+      } else if (query.toLowerCase().includes('loss')) {
         aiResponseText =
-          'Historical logs for 15/9-F-11B show 15 bbl/hr seepage losses in Hugin sandstone (2450m). Losses were controlled using 50 bbl of 40 ppb LCM pill.';
-        citationText = 'Source: WCR Volve 15/9-F-11B (p. 3)';
+          'OIL-NWIS-04 recorded reduced returns near 3,172m in Northwind Sandstone. The response was to reduce pump rate and apply the approved loss-circulation treatment.';
+        citationText = 'Source: seed_oil_nwis_foundation_v1, OIL-NWIS-04 (p. 15)';
       }
 
       const assistantMsg: ChatMessage = {
@@ -115,7 +125,7 @@ export const GeminiChat: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col rounded-xl bg-slate-800/40 backdrop-blur-md border border-slate-700/50 p-3.5 shadow-md min-h-[360px]">
+    <div className="flex-1 flex flex-col rounded-xl bg-slate-800/40 backdrop-blur-md border border-slate-700/50 p-3.5 shadow-md min-h-[440px]">
       {/* Header */}
       <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
         <div className="flex items-center gap-2">
@@ -131,14 +141,15 @@ export const GeminiChat: React.FC = () => {
             </span>
           </div>
         </div>
-        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-purple-950/70 text-purple-300 border border-purple-800/60 flex items-center gap-1">
+        <span className="ops-status bg-purple-950/70 text-purple-300 border-purple-800/60">
           <Bot className="w-3 h-3" />
-          Gemini 1.5 Pro
+        Historical evidence
         </span>
       </div>
+      <div className="mt-3 rounded-lg border border-cyan-800/50 bg-cyan-950/20 px-3 py-2 text-xs text-cyan-100">Querying at: <span className="font-mono font-semibold">{telemetry.measuredDepthM.toLocaleString()} m MD</span> • {telemetry.currentFormation}</div>
 
       {/* Messages Scroll Area */}
-      <div className="flex-1 overflow-y-auto my-2.5 space-y-2.5 pr-1 max-h-[250px] min-h-[160px]">
+      <div className="flex-1 overflow-y-auto my-2.5 space-y-2.5 pr-1 max-h-[310px] min-h-[210px]">
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -165,11 +176,11 @@ export const GeminiChat: React.FC = () => {
                 )}
                 <span>• {msg.timestamp}</span>
               </div>
-              <p className="leading-relaxed text-[11px] whitespace-pre-wrap">{msg.text}</p>
+              <p className="leading-relaxed text-xs whitespace-pre-wrap">{msg.text}</p>
               {msg.citation && (
-                <div className="mt-2 pt-1.5 border-t border-slate-800/80 flex items-center gap-1.5 text-[10px] text-cyan-400 font-mono">
+                <div className="mt-2 pt-1.5 border-t border-slate-800/80 flex items-center gap-1.5 text-[11px] text-cyan-300 font-mono">
                   <BookOpen className="w-3 h-3 flex-shrink-0" />
-                  <span className="truncate">{msg.citation}</span>
+                  <span className="truncate" title={msg.citation}>{msg.citation}</span>
                 </div>
               )}
             </div>
@@ -194,7 +205,7 @@ export const GeminiChat: React.FC = () => {
       </div>
 
       {/* Quick Prompts Chips */}
-      <div className="py-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar mb-2">
+      <div className="relative mb-2"><div aria-label="Suggested AI questions" className="py-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar pr-8">
         <span className="text-[9px] font-mono uppercase text-slate-500 flex-shrink-0 flex items-center gap-1">
           <HelpCircle className="w-3 h-3" /> Suggestions:
         </span>
@@ -208,7 +219,7 @@ export const GeminiChat: React.FC = () => {
             <ArrowUpRight className="w-2.5 h-2.5 text-slate-500" />
           </button>
         ))}
-      </div>
+      </div><div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-slate-800/95 to-transparent" /></div>
 
       {/* Input Form */}
       <form
@@ -223,6 +234,7 @@ export const GeminiChat: React.FC = () => {
           value={inputQuery}
           onChange={(e) => setInputQuery(e.target.value)}
           placeholder="Ask Gemini about offset wells, mud weights, casing, kicks..."
+          aria-label="Ask AI about the active drilling context"
           className="w-full bg-[#0A101D] border border-slate-700/80 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 pr-10 shadow-inner"
         />
         <button

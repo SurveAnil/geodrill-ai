@@ -1,38 +1,71 @@
 'use client';
 
-import React from 'react';
-import { MapContainer, TileLayer, Circle, CircleMarker, Tooltip, Popup } from 'react-leaflet';
+import React, { useEffect } from 'react';
+import { MapContainer, TileLayer, Circle, CircleMarker, Tooltip, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { OFFSET_WELLS, OffsetWellItem } from './OffsetRadarTable';
-
-const ACTIVE_RIG_COORDS: [number, number] = [16.245, 82.352];
+import { OffsetWellItem } from './OffsetRadarTable';
 
 interface WellMapProps {
   selectedWell?: OffsetWellItem | null;
   wells?: OffsetWellItem[];
+  activeCoordinates?: [number, number];
+  activeWellId?: string;
+  radiusKm?: number;
 }
 
-export const WellMap: React.FC<WellMapProps> = ({ selectedWell, wells = OFFSET_WELLS }) => {
+const MapSizeSynchronizer: React.FC = () => {
+  const map = useMap();
+
+  useEffect(() => {
+    const invalidate = () => map.invalidateSize({ pan: false });
+    const frame = window.requestAnimationFrame(invalidate);
+    const container = map.getContainer();
+    const observer = new ResizeObserver(invalidate);
+    observer.observe(container);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [map]);
+
+  return null;
+};
+
+export const WellMap: React.FC<WellMapProps> = ({
+  selectedWell,
+  wells = [],
+  activeCoordinates = [58.4121, 1.8422],
+  activeWellId = 'OIL-NWIS-01',
+  radiusKm = 10,
+}) => {
+  const cartoApiKey = process.env.NEXT_PUBLIC_CARTO_API_KEY?.trim();
+  const cartoTileUrl = cartoApiKey
+    ? `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${encodeURIComponent(cartoApiKey)}`
+    : undefined;
+
   return (
     <div className="w-full h-full min-h-[260px] relative rounded-lg overflow-hidden border border-slate-800 bg-[#090D16]">
       <MapContainer
-        center={ACTIVE_RIG_COORDS}
+        center={activeCoordinates}
         zoom={11}
         scrollWheelZoom={false}
         className="w-full h-full z-10"
         style={{ background: '#090D16' }}
       >
-        {/* CartoDB Dark Matter Tile Layer */}
-        <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          maxZoom={19}
-        />
+        <MapSizeSynchronizer />
+        {cartoTileUrl && (
+          <TileLayer
+            attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+            url={cartoTileUrl}
+            maxZoom={19}
+          />
+        )}
 
-        {/* 10 km Radius Safe/Correlation Zone */}
+        {/* Radius Safe/Correlation Zone */}
         <Circle
-          center={ACTIVE_RIG_COORDS}
-          radius={10000}
+          center={activeCoordinates}
+          radius={radiusKm * 1000}
           pathOptions={{
             color: '#06B6D4',
             fillColor: '#0891B2',
@@ -42,13 +75,13 @@ export const WellMap: React.FC<WellMapProps> = ({ selectedWell, wells = OFFSET_W
           }}
         >
           <Tooltip direction="top" opacity={0.9} permanent={false}>
-            <span className="text-xs font-mono">10.0 km Correlation Radius</span>
+            <span className="text-xs font-mono">{radiusKm.toFixed(1)} km Correlation Radius</span>
           </Tooltip>
         </Circle>
 
         {/* Active Rig: Pulsating Core & Outer Ring */}
         <CircleMarker
-          center={ACTIVE_RIG_COORDS}
+          center={activeCoordinates}
           radius={14}
           pathOptions={{
             color: '#38BDF8',
@@ -58,7 +91,7 @@ export const WellMap: React.FC<WellMapProps> = ({ selectedWell, wells = OFFSET_W
           }}
         />
         <CircleMarker
-          center={ACTIVE_RIG_COORDS}
+          center={activeCoordinates}
           radius={7}
           pathOptions={{
             color: '#FFFFFF',
@@ -69,7 +102,7 @@ export const WellMap: React.FC<WellMapProps> = ({ selectedWell, wells = OFFSET_W
         >
           <Tooltip direction="top" offset={[0, -10]} opacity={0.95} permanent>
             <div className="bg-[#0B1120] text-slate-100 p-1 rounded border border-cyan-500/80 font-mono text-[11px] font-bold shadow-lg">
-              🎯 ACTIVE RIG (15/9-F-11B)
+              🎯 ACTIVE WELL ({activeWellId})
             </div>
           </Tooltip>
         </CircleMarker>
@@ -118,6 +151,8 @@ export const WellMap: React.FC<WellMapProps> = ({ selectedWell, wells = OFFSET_W
           );
         })}
       </MapContainer>
+
+      {!cartoTileUrl && <div className="absolute bottom-9 right-2 z-[400] rounded border border-amber-700/70 bg-[#0B1120]/95 px-2 py-1 text-[10px] text-amber-200 shadow-md">Basemap unavailable</div>}
 
       {/* Map Legend Overlay */}
       <div className="absolute bottom-2 left-2 z-[400] bg-[#0B1120]/90 border border-slate-800/90 rounded px-2 py-1 text-[10px] font-mono text-slate-400 flex items-center gap-3 backdrop-blur-sm shadow-md">

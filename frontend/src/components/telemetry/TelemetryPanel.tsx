@@ -11,7 +11,7 @@ export const TelemetryPanel: React.FC = () => {
   const tickCount = useDrillStore((s) => s.simulationTickCount);
 
   return (
-    <div className="flex flex-col h-full gap-3">
+    <div className="flex flex-col h-full gap-3 p-4">
       {/* Panel Header */}
       <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">

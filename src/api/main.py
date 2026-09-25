@@ -14,6 +14,7 @@ import logging
 import os
 import re
 import time
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
@@ -113,6 +114,8 @@ async def lifespan(app: FastAPI):
     """Application lifespan handler: initializes database tables and resources on startup."""
     _validate_configuration()
     await run_in_threadpool(db_service.init_db)
+    if os.getenv("GEODRILL_SEED_DATA", "true").strip().lower() in {"1", "true", "yes", "on"}:
+        await run_in_threadpool(db_service.seed_demo_data)
     yield
 
 
@@ -124,11 +127,32 @@ app = FastAPI(
 )
 
 def _cors_origins() -> list[str]:
-    """Read comma-separated browser origins while keeping local defaults."""
+    """Read exact browser origins from comma-separated or JSON-like settings."""
     configured = os.getenv("GEODRILL_CORS_ORIGINS", "").strip()
     if not configured:
         return ["http://localhost:3000", "http://127.0.0.1:3000"]
-    origins = [origin.strip().rstrip("/") for origin in configured.split(",") if origin.strip()]
+
+    raw_origins: list[str]
+    if configured.startswith("[") and configured.endswith("]"):
+        try:
+            parsed = json.loads(configured)
+        except json.JSONDecodeError:
+            parsed = None
+        if isinstance(parsed, list):
+            raw_origins = [str(origin) for origin in parsed]
+        else:
+            raw_origins = configured[1:-1].split(",")
+    else:
+        raw_origins = configured.split(",")
+
+    origins: list[str] = []
+    for origin in raw_origins:
+        normalized = origin.strip().strip("\"'").rstrip("/")
+        parsed = urlsplit(normalized)
+        if parsed.scheme in {"http", "https"} and parsed.netloc and not parsed.path:
+            origins.append(normalized)
+        else:
+            logger.warning("Ignoring invalid CORS origin configuration: %s", origin.strip())
     return origins or ["http://localhost:3000", "http://127.0.0.1:3000"]
 
 
@@ -145,8 +169,8 @@ app.add_middleware(
     allow_origins=_cors_origins(),
     allow_origin_regex=_cors_origin_regex(),
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Accept", "Authorization", "Content-Type", "Origin", "X-Request-ID"],
 )
 app.add_middleware(RequestLoggingMiddleware)
 

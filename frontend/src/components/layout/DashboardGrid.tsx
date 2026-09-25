@@ -24,11 +24,11 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
   const { risk, telemetry } = useDrillStore();
 
   return (
-    <div className="flex-1 w-full max-w-[1920px] mx-auto p-3.5 space-y-3.5 flex flex-col">
+    <div className="flex-1 w-full max-w-[1920px] mx-auto px-3 py-4 sm:px-4 lg:px-5 space-y-4 flex flex-col">
       {/* Top Section: Phase 2 Hero Slot (1-2-3 Triage Cards) */}
-      <section id="hero-triage-section" className="w-full">
+      <section id="hero-triage-section" aria-label="Current operational risk" className="w-full">
         {heroSlot || (
-          <div className="w-full bg-[#0F172A] border border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-lg">
+          <div className="ops-panel w-full p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-lg bg-cyan-950/60 border border-cyan-800/60 text-cyan-400">
                 <ShieldAlert className="w-5 h-5" />
@@ -53,11 +53,11 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
       </section>
 
       {/* Main 3-Column Operations Layout */}
-      <main className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 min-h-[580px]">
+      <main className="grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-[580px]">
         {/* Left Column: Geospatial & Radar (Phase 4) */}
         <section
           id="left-gis-column"
-          className="lg:col-span-3 bg-[#0F172A]/80 border border-slate-800/90 rounded-xl p-4 flex flex-col justify-between shadow-md"
+          className="ops-panel lg:col-span-3 p-0 flex flex-col justify-between overflow-hidden"
         >
           {leftSlot || (
             <div className="flex flex-col h-full justify-between text-xs text-slate-500">
@@ -69,7 +69,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
         {/* Center Column: AI Panels (Layer 1 & 2 - Phase 5) */}
         <section
           id="center-ai-column"
-          className="lg:col-span-5 bg-[#0F172A]/80 border border-slate-800/90 rounded-xl p-4 flex flex-col justify-between shadow-md"
+          className="ops-panel lg:col-span-5 p-0 flex flex-col justify-between overflow-hidden"
         >
           {centerSlot || (
             <div className="flex flex-col h-full justify-between text-xs text-slate-500">
@@ -81,7 +81,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
         {/* Right Column: Live Telemetry & Timeline (Layer 3 & 4 - Phase 3) */}
         <section
           id="right-telemetry-column"
-          className="lg:col-span-4 bg-[#0F172A]/80 border border-slate-800/90 rounded-xl p-4 flex flex-col justify-between shadow-md"
+          className="ops-panel lg:col-span-4 p-0 flex flex-col justify-between overflow-hidden"
         >
           {rightSlot || (
             <div className="flex flex-col h-full justify-between text-xs text-slate-500">
@@ -92,9 +92,9 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
       </main>
 
       {/* Bottom Section: 2-Column Grid for Phase 6 (Stratigraphy) and Phase 7 (Lessons Learned) */}
-      <section id="bottom-correlation-section" className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 min-h-[380px]">
+      <section id="bottom-correlation-section" aria-label="Historical context and correlation" className="grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-[380px]">
         {/* Bottom Left: Stratigraphic Depth Cross-Correlation (Layer 3 - Phase 6) */}
-        <div className="lg:col-span-6 bg-[#0F172A]/80 border border-slate-800/90 rounded-xl p-4 flex flex-col shadow-md">
+        <div className="ops-panel lg:col-span-6 p-0 flex flex-col overflow-hidden">
           {bottomLeftSlot || (
             <div className="flex flex-col h-full justify-between">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
@@ -115,7 +115,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
         </div>
 
         {/* Bottom Right: Lessons Learned Repository (Phase 7) */}
-        <div className="lg:col-span-6 bg-[#0F172A]/80 border border-slate-800/90 rounded-xl p-4 flex flex-col shadow-md">
+        <div className="ops-panel lg:col-span-6 p-0 flex flex-col overflow-hidden">
           {bottomRightSlot || (
             <div className="flex flex-col h-full justify-between">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">

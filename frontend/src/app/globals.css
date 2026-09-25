@@ -6,13 +6,59 @@
   --foreground-rgb: 241, 245, 249;
   --background-start-rgb: 9, 13, 22;
   --background-end-rgb: 15, 23, 42;
+  --app-bg: #070b13;
+  --panel-bg: #0d1524;
+  --panel-bg-raised: #111c2f;
+  --panel-subtle: #0a111e;
+  --panel-border: #243249;
+  --panel-border-strong: #33445f;
+  --accent-cyan: #22d3ee;
+  --accent-amber: #fbbf24;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background-color: #090D16;
+  background:
+    radial-gradient(circle at 50% -20%, rgba(14, 116, 144, 0.12), transparent 38rem),
+    var(--app-bg);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
   overflow-x: hidden;
+}
+
+@layer components {
+  .ops-panel {
+    @apply rounded-xl border bg-slate-900/80 shadow-lg shadow-black/10;
+    border-color: var(--panel-border);
+  }
+
+  .ops-panel-header {
+    @apply flex items-center justify-between gap-3 border-b px-4 py-3;
+    border-color: rgba(51, 65, 85, 0.65);
+  }
+
+  .ops-eyebrow {
+    @apply text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500;
+  }
+
+  .ops-status {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide;
+  }
+}
+
+*:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Custom scrollbars for industrial density */

@@ -4,9 +4,9 @@ export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
 
 export type ScenarioType =
   | 'normal_drilling'
-  | 'approaching_hugin_losses'
-  | 'gas_kick_influx'
-  | 'tight_hole_overpull';
+  | 'approaching_northwind_losses'
+  | 'northwind_gas_influx'
+  | 'northwind_tight_hole';
 
 export interface TelemetryData {
   measuredDepthM: number;
@@ -38,6 +38,11 @@ interface DrillStore {
   field: string;
   operator: string;
   targetTotalDepthM: number;
+  activeWellLocation: { latitude: number; longitude: number };
+  operatingMode: 'DEMO' | 'LIVE' | 'SIMULATED';
+  alertCount: number;
+  acknowledgedAt?: string;
+  acknowledgedRiskIdentity?: string;
 
   // Real-time Telemetry (10Hz stream state)
   telemetry: TelemetryData;
@@ -57,9 +62,21 @@ interface DrillStore {
   toggleSimulation: () => void;
   toggle10HzStream: () => void;
   setActiveWell: (wellId: string) => void;
+  setActiveWellContext: (well: {
+    well_id: string;
+    operator?: string;
+    field_name?: string;
+    latitude?: number;
+    longitude?: number;
+    total_depth_m?: number;
+    current_depth_m?: number;
+    current_formation?: string;
+  }) => void;
+  setActiveWellLocation: (location: { latitude: number; longitude: number }) => void;
   stepSimulation: () => void;
   setRisk: (risk: RiskState) => void;
   setBackendStatus: (status: DrillStore['backendStatus']) => void;
+  acknowledgeCurrentRisk: () => void;
 }
 
 export const SCENARIO_PRESETS: Record<
@@ -72,8 +89,8 @@ export const SCENARIO_PRESETS: Record<
   }
 > = {
   normal_drilling: {
-    name: 'Normal Drilling (Stable Chalk)',
-    description: 'Drilling smoothly through Rogaland / Chalk Group with nominal parameters.',
+    name: 'Normal Drilling (Harbour Shale)',
+    description: 'Drilling through Harbour Shale with nominal Northwind Field parameters.',
     telemetry: {
       measuredDepthM: 1850.0,
       trueVerticalDepthM: 1820.0,
@@ -83,45 +100,45 @@ export const SCENARIO_PRESETS: Record<
       flowRate: 750,
       standpipePressure: 2850,
       mudWeightSg: 1.35,
-      currentFormation: 'Chalk Group',
-      nextFormation: 'Hugin Formation',
-      nextFormationDepthM: 2420.0,
+      currentFormation: 'Harbour Shale',
+      nextFormation: 'Northwind Sandstone',
+      nextFormationDepthM: 3025.0,
     },
     risk: {
       riskLevel: 'low',
       riskScore: 8,
       predictedHazard: 'No immediate geological anomalies detected ahead in next 100m.',
       immediateAction: 'Continue rotary drilling with standard surveillance. Maintain 1.35 SG mud weight.',
-      offsetWellCitation: 'Offset wells 15/9-F-11B & 15/9-F-12 show clean drilling through Chalk.',
+      offsetWellCitation: 'Northwind offset wells show stable drilling through Harbour Shale.',
     },
   },
-  approaching_hugin_losses: {
-    name: 'Approaching Hugin (Loss Risk)',
-    description: 'Entering Hugin sandstone reservoir. Offset well 15/9-F-11B experienced 15 bbl/hr mud loss at 2450m.',
+  approaching_northwind_losses: {
+    name: 'Northwind Reservoir (Offset Risk)',
+    description: 'Entering Northwind Sandstone. Offset wells recorded kick, losses, stuck pipe, and torque issues near 3,100 m.',
     telemetry: {
-      measuredDepthM: 2445.0,
-      trueVerticalDepthM: 2390.2,
+      measuredDepthM: 3108.0,
+      trueVerticalDepthM: 3032.0,
       rop: 16.2,
       wob: 28.5,
-      torque: 16.4,
+      torque: 21.4,
       flowRate: 640,
-      standpipePressure: 3100,
-      mudWeightSg: 1.45,
-      currentFormation: 'Hugin Formation',
-      nextFormation: 'Skagerrak Formation',
-      nextFormationDepthM: 2750.0,
+      standpipePressure: 13100,
+      mudWeightSg: 1.35,
+      currentFormation: 'Northwind Sandstone',
+      nextFormation: 'Northwind Sandstone base',
+      nextFormationDepthM: 3415.0,
     },
     risk: {
       riskLevel: 'high',
       riskScore: 78,
-      predictedHazard: 'Severe Mud Loss Zone Ahead (Depth 2450.0m MD / Hugin Formation)',
-      immediateAction: 'Stage 50 bbl LCM pill (40 ppb blend) in active pit. Reduce flow rate to 550 gpm; monitor return pit volume.',
-      offsetWellCitation: 'Well 15/9-F-11B (5.2km offset, WCR p.3): 15 bbl/hr loss at 2450m cured with 50 bbl LCM pill.',
+      predictedHazard: 'Comparable offset incident zone ahead near 3,118m MD / Northwind Sandstone',
+      immediateAction: 'Verify flow and pit volume, hold WOB, and prepare the approved kick/loss response while drilling through the offset evidence window.',
+      offsetWellCitation: 'OIL-NWIS-02 and OIL-NWIS-03: kick, mud loss, and stuck-pipe events between 3,096m and 3,172m.',
     },
   },
-  gas_kick_influx: {
-    name: 'Hugin Gas Influx (Kick Risk)',
-    description: 'Gas cap zone warning. Offset well 15/9-F-12 took a 12 bbl kick with pit gain at 2510m.',
+  northwind_gas_influx: {
+    name: 'Northwind Gas Influx (Kick Risk)',
+    description: 'Reservoir warning. OIL-NWIS-02 recorded an 8 bbl kick near 3118m.',
     telemetry: {
       measuredDepthM: 2505.0,
       trueVerticalDepthM: 2440.0,
@@ -131,21 +148,21 @@ export const SCENARIO_PRESETS: Record<
       flowRate: 680,
       standpipePressure: 3350,
       mudWeightSg: 1.48,
-      currentFormation: 'Hugin Formation (Gas Cap)',
-      nextFormation: 'Skagerrak Formation',
-      nextFormationDepthM: 2750.0,
+      currentFormation: 'Northwind Sandstone',
+      nextFormation: 'Northwind Sandstone base',
+      nextFormationDepthM: 3415.0,
     },
     risk: {
       riskLevel: 'critical',
       riskScore: 92,
       predictedHazard: 'Gas Influx / Overpressured Reservoir Pocket Ahead at 2510m MD',
       immediateAction: 'Perform flow check. Space out and prepare annular preventer. Have Driller Method circulation sheet ready.',
-      offsetWellCitation: 'Well 15/9-F-12 (200m offset, DDR p.2): 12 bbl pit gain at 2510m MD, shut in on annular BOP.',
+      offsetWellCitation: 'OIL-NWIS-02 source report p.12: 8 bbl pit gain near 3118m, BOP closed.',
     },
   },
-  tight_hole_overpull: {
-    name: 'Skagerrak Deep (Stuck Pipe Risk)',
-    description: 'Deep shale/sand section. Offset well 15/9-F-11B experienced mechanical stuck pipe at 2810m.',
+  northwind_tight_hole: {
+    name: 'Northwind Tight Hole (Stuck Pipe Risk)',
+    description: 'Reservoir section. OIL-NWIS-03 recorded stuck pipe near 3096m.',
     telemetry: {
       measuredDepthM: 2802.0,
       trueVerticalDepthM: 2710.5,
@@ -155,33 +172,38 @@ export const SCENARIO_PRESETS: Record<
       flowRate: 580,
       standpipePressure: 3450,
       mudWeightSg: 1.52,
-      currentFormation: 'Skagerrak Formation',
-      nextFormation: 'Base Total Depth',
-      nextFormationDepthM: 3200.0,
+      currentFormation: 'Northwind Sandstone',
+      nextFormation: 'Northwind Sandstone base',
+      nextFormationDepthM: 3415.0,
     },
     risk: {
       riskLevel: 'medium',
       riskScore: 62,
       predictedHazard: 'Tight Hole Section & Mechanical Sticking Hazard at 2810m MD',
       immediateAction: 'Limit overpull to 25 klbs. Perform wiper trips every stand. Ensure hydraulic jars are energized.',
-      offsetWellCitation: 'Well 15/9-F-11B (WCR p.5): 40 klbs overpull, stuck 6 hours, jarred free.',
+      offsetWellCitation: 'OIL-NWIS-03 source report p.8: string stuck near 3096m across a shale streak.',
     },
   },
 };
 
-export const useDrillStore = create<DrillStore>((set, get) => ({
-  activeWellId: '15/9-F-11B',
-  wellName: 'Volve 15/9-F-11B',
-  field: 'Volve Field (PL 046)',
-  operator: 'Statoil ASA',
-  targetTotalDepthM: 3200.0,
+const getRiskIdentity = (risk: RiskState) => risk.alertId || `${risk.riskLevel}:${risk.predictedHazard}`;
 
-  telemetry: SCENARIO_PRESETS.approaching_hugin_losses.telemetry,
-  risk: SCENARIO_PRESETS.approaching_hugin_losses.risk,
+export const useDrillStore = create<DrillStore>((set, get) => ({
+  activeWellId: 'OIL-NWIS-01',
+  wellName: 'OIL-NWIS-01',
+  field: 'Northwind Field',
+  operator: 'Orion Inlet Limited',
+  targetTotalDepthM: 3415.0,
+  activeWellLocation: { latitude: 58.4121, longitude: 1.8422 },
+  operatingMode: 'DEMO',
+  alertCount: 1,
+
+  telemetry: SCENARIO_PRESETS.approaching_northwind_losses.telemetry,
+  risk: SCENARIO_PRESETS.approaching_northwind_losses.risk,
 
   isSimulating: false,
   isStreaming10Hz: true,
-  selectedScenario: 'approaching_hugin_losses',
+  selectedScenario: 'approaching_northwind_losses',
   simulationTickCount: 0,
   backendStatus: 'demo',
 
@@ -202,10 +224,16 @@ export const useDrillStore = create<DrillStore>((set, get) => ({
   setScenario: (scenarioKey: ScenarioType) => {
     const preset = SCENARIO_PRESETS[scenarioKey];
     if (!preset) return;
-    set({
-      selectedScenario: scenarioKey,
-      telemetry: { ...preset.telemetry },
-      risk: { ...preset.risk },
+    set((state) => {
+      const identityChanged = getRiskIdentity(state.risk) !== getRiskIdentity(preset.risk);
+      return {
+        selectedScenario: scenarioKey,
+        telemetry: { ...preset.telemetry },
+        risk: { ...preset.risk },
+        acknowledgedAt: identityChanged ? undefined : state.acknowledgedAt,
+        acknowledgedRiskIdentity: identityChanged ? undefined : state.acknowledgedRiskIdentity,
+        alertCount: identityChanged && ['high', 'critical'].includes(preset.risk.riskLevel) ? 1 : state.alertCount,
+      };
     });
   },
 
@@ -224,6 +252,34 @@ export const useDrillStore = create<DrillStore>((set, get) => ({
       activeWellId: wellId,
       wellName: `Well ${wellId}`,
     }),
+
+  setActiveWellContext: (well) =>
+    set((state) => {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('geodrill.activeWellId', well.well_id);
+      }
+      return {
+        activeWellId: well.well_id,
+        wellName: well.well_id,
+        operator: well.operator || state.operator,
+        field: well.field_name || state.field,
+        targetTotalDepthM: well.total_depth_m || state.targetTotalDepthM,
+        activeWellLocation: {
+          latitude: well.latitude ?? state.activeWellLocation.latitude,
+          longitude: well.longitude ?? state.activeWellLocation.longitude,
+        },
+        telemetry: {
+          ...state.telemetry,
+          measuredDepthM: well.current_depth_m ?? state.telemetry.measuredDepthM,
+          trueVerticalDepthM: well.current_depth_m
+            ? +(well.current_depth_m * 0.975).toFixed(1)
+            : state.telemetry.trueVerticalDepthM,
+          currentFormation: well.current_formation || state.telemetry.currentFormation,
+        },
+      };
+    }),
+
+  setActiveWellLocation: (activeWellLocation) => set({ activeWellLocation }),
 
   stepSimulation: () => {
     const state = get();
@@ -244,6 +300,19 @@ export const useDrillStore = create<DrillStore>((set, get) => ({
       },
     });
   },
-  setRisk: (risk) => set({ risk }),
+  setRisk: (risk) => set((state) => {
+    const identityChanged = getRiskIdentity(state.risk) !== getRiskIdentity(risk);
+    return {
+      risk,
+      acknowledgedAt: identityChanged ? undefined : state.acknowledgedAt,
+      acknowledgedRiskIdentity: identityChanged ? undefined : state.acknowledgedRiskIdentity,
+      alertCount: identityChanged && ['high', 'critical'].includes(risk.riskLevel) ? 1 : state.alertCount,
+    };
+  }),
   setBackendStatus: (backendStatus) => set({ backendStatus }),
+  acknowledgeCurrentRisk: () => set((state) => ({
+    alertCount: 0,
+    acknowledgedAt: new Date().toISOString(),
+    acknowledgedRiskIdentity: getRiskIdentity(state.risk),
+  })),
 }));

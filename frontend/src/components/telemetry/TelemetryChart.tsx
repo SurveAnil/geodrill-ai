@@ -35,9 +35,9 @@ const HISTORY_LIMIT = 100;
 const TICK_SAMPLE_RATE = 3; // sample every 3rd store tick → ~3.3 Hz chart updates
 
 // Operating-window thresholds for background bands
-const SPP_SAFE_LOW = 2500;
-const SPP_SAFE_HIGH = 3600;
-const SPP_FRAC_LIMIT = 4200;
+const SPP_SAFE_LOW = 10000;
+const SPP_SAFE_HIGH = 14000;
+const SPP_FRAC_LIMIT = 15000;
 
 /* ------------------------------------------------------------------ */
 /*  Background-band plugin — renders horizontal safe/warning zones      */
@@ -92,6 +92,7 @@ const chartOptions: ChartOptions<'line'> = {
   responsive: true,
   maintainAspectRatio: false,
   animation: false,
+  layout: { padding: { right: 18 } },
   interaction: {
     mode: 'index',
     intersect: false,
@@ -158,8 +159,8 @@ const chartOptions: ChartOptions<'line'> = {
         maxTicksLimit: 5,
       },
       border: { color: '#1E293B' },
-      min: 2000,
-      max: 5000,
+      min: 8000,
+      max: 16000,
     },
     'y-rop': {
       type: 'linear',
@@ -200,6 +201,12 @@ export const TelemetryChart: React.FC = React.memo(() => {
 
   // Subscribe to store changes outside React render cycle for perf
   useEffect(() => {
+    const current = useDrillStore.getState().telemetry;
+    setHistory([{
+      label: `${current.measuredDepthM.toFixed(1)}m`,
+      spp: current.standpipePressure,
+      rop: current.rop,
+    }]);
     const unsub = useDrillStore.subscribe((state) => {
       tickCounterRef.current += 1;
       if (tickCounterRef.current % TICK_SAMPLE_RATE !== 0) return;

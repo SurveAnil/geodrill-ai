@@ -16,6 +16,9 @@ import {
 import { useEffect } from 'react';
 import { apiClient } from '@/lib/api';
 import type { IncidentEvent } from '@/lib/api';
+import { useDrillStore } from '@/store/useDrillStore';
+import { useSearchParams } from 'next/navigation';
+import { formatHazardLabel } from '@/lib/presentation';
 
 export type HazardCategory = 'all' | 'mud_loss' | 'stuck_pipe' | 'kick';
 
@@ -37,48 +40,48 @@ export interface LessonEvent {
 export const LESSON_EVENTS: LessonEvent[] = [
   {
     id: 'evt-1',
-    depthM: 3180,
-    wellName: 'ONGC-KG-07-ALOK',
-    formation: 'Krishna Sand-B / Hugin',
-    hazardName: 'Severe Mud Loss',
+    depthM: 3096,
+    wellName: 'OIL-NWIS-03',
+    formation: 'Northwind Sandstone',
+    hazardName: 'Stuck Pipe',
     category: 'mud_loss',
     severity: 'critical',
     incidentDescription:
-      'Sudden drop in SPP (450 psi drop) and total loss of returns (65 bbl/hr) encountered while drilling through permeable high-porosity sandstone.',
-    mitigation: 'Spotted 40 bbl LCM pill (medium/coarse CaCO3 blend) and reduced annular pump rate.',
-    keyLesson: 'Do not exceed ECD of 11.1 ppg (1.33 SG) in this horizon. Stage 50 bbl LCM on surface prior to bit entry.',
-    sourceDoc: 'WCR ONGC-KG-07, Section 4.2 (p. 18)',
-    date: 'March 2021',
+      'String became stuck while drilling a shale streak within the Northwind Sandstone interval.',
+    mitigation: 'Worked the string with jars, circulated clean, and resumed drilling after confirming torque stability.',
+    keyLesson: 'Maintain rotation and monitor torque closely across the shale streak.',
+    sourceDoc: 'seed_oil_nwis_foundation_v1, OIL-NWIS-03 (p. 8)',
+    date: 'Seed scenario',
   },
   {
     id: 'evt-2',
-    depthM: 3240,
-    wellName: 'ONGC-KG-09-CHARLIE',
-    formation: 'Lower Krishna Siltstone',
-    hazardName: 'Differential Sticking',
+    depthM: 3118,
+    wellName: 'OIL-NWIS-02',
+    formation: 'Northwind Sandstone',
+    hazardName: 'Kick / Influx',
     category: 'stuck_pipe',
     severity: 'warning',
     incidentDescription:
-      'Drill string became mechanically stuck after remaining stationary for 10 minutes during a drill pipe connection.',
-    mitigation: 'Spaced out tool joint, activated hydraulic drilling jars with 35 klbs upward jarring force, worked string free in 4 hours.',
-    keyLesson: 'Minimize connection times to < 3 minutes in overbalanced zones; maintain continuous string rotation and reciprocation.',
-    sourceDoc: 'DDR ONGC-KG-09, Shift Report Day 22',
-    date: 'August 2022',
+      'Pit gain and flow after pumps-off indicated an influx while drilling the reservoir section.',
+    mitigation: 'Performed a flow check and shut in on the annular preventer before controlled circulation.',
+    keyLesson: 'Verify flow and pit volume frequently when approaching the offset evidence window.',
+    sourceDoc: 'seed_oil_nwis_foundation_v1, OIL-NWIS-02 (p. 12)',
+    date: 'Seed scenario',
   },
   {
     id: 'evt-3',
-    depthM: 3310,
-    wellName: 'ONGC-KG-12-BRAVO',
-    formation: 'Upper Overpressured Sand',
-    hazardName: 'Gas Kick & Influx',
+    depthM: 3172,
+    wellName: 'OIL-NWIS-04',
+    formation: 'Northwind Sandstone',
+    hazardName: 'Mud Loss',
     category: 'kick',
     severity: 'warning',
     incidentDescription:
-      'Rapid 15 bbl pit volume gain observed with flow check confirming positive flow with mud pumps turned off.',
-    mitigation: 'Hard shut-in on annular preventer, recorded 380 psi SIDPP and 450 psi SICP. Circulated kick out using Driller\'s Method.',
-    keyLesson: 'Increase active Mud Weight to 12.2 ppg (1.46 SG) before penetrating 3,300m depth horizon.',
-    sourceDoc: 'Incident Report KG-12 (2008), Event #14',
-    date: 'November 2023',
+      'Returns reduced while drilling a permeable interval in the Northwind Sandstone.',
+    mitigation: 'Reduced pump rate and treated the system with the approved loss-circulation material.',
+    keyLesson: 'Stage loss-circulation material before entering the comparable-depth window.',
+    sourceDoc: 'seed_oil_nwis_foundation_v1, OIL-NWIS-04 (p. 15)',
+    date: 'Seed scenario',
   },
 ];
 
@@ -104,18 +107,24 @@ const SEVERITY_CONFIG = {
 };
 
 export const LessonsLearnedRepository: React.FC = () => {
+  const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<HazardCategory>('all');
   const [events, setEvents] = useState<LessonEvent[]>(LESSON_EVENTS);
   const [apiUnavailable, setApiUnavailable] = useState(false);
+  const { activeWellId, telemetry } = useDrillStore();
   useEffect(() => {
-    apiClient.correlateIncidents('15/9-F-11B', 2445, 'Hugin Formation').then((items) => {
+    if (searchParams.get('evidence') === 'northwind') setSearchQuery('Northwind');
+  }, [searchParams]);
+  useEffect(() => {
+    setApiUnavailable(false);
+    apiClient.correlateIncidents(activeWellId, telemetry.measuredDepthM, telemetry.currentFormation).then((items) => {
       const mapped = items.map((item: IncidentEvent, index) => {
         const category = item.event_type === 'kick' ? 'kick' : item.event_type === 'stuck_pipe' ? 'stuck_pipe' : 'mud_loss';
         return {
           id: String(item.event_id || `api-${index}`), depthM: Number(item.depth_m || 0),
           wellName: item.well_id || 'Offset well', formation: item.formation || 'Unknown formation',
-          hazardName: String(item.event_type || 'Historical incident').replace(/_/g, ' '),
+          hazardName: formatHazardLabel(item.event_type || 'Historical incident'),
           category, severity: item.severity === 'critical' ? 'critical' : item.severity === 'caution' ? 'caution' : 'warning',
           incidentDescription: item.description || item.source_snippet || 'Historical incident correlated near current depth.',
           mitigation: item.mitigation || 'Review the source report and approved well programme.',
@@ -125,7 +134,7 @@ export const LessonsLearnedRepository: React.FC = () => {
       }).filter((item) => item.depthM > 0);
       if (mapped.length) setEvents(mapped);
     }).catch(() => setApiUnavailable(true));
-  }, []);
+  }, [activeWellId, telemetry.measuredDepthM, telemetry.currentFormation]);
 
   const filteredEvents = useMemo(() => {
     return events.filter((evt) => {
@@ -146,7 +155,8 @@ export const LessonsLearnedRepository: React.FC = () => {
   }, [events, searchQuery, selectedCategory]);
 
   return (
-    <div className="flex flex-col h-full justify-between">
+    <div className="flex flex-col h-full justify-between p-4">
+      <div className="sticky top-0 z-10 -mt-4 -mx-4 mb-4 border-b border-cyan-800/50 bg-[#0B1120]/95 px-4 py-2 text-xs text-cyan-100 backdrop-blur">Currently drilling: <span className="font-mono font-semibold">{telemetry.measuredDepthM.toLocaleString()} m MD</span> • {telemetry.currentFormation}</div>
       {/* Header */}
       <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
         <div className="flex items-center gap-2">
@@ -176,7 +186,7 @@ export const LessonsLearnedRepository: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by hazard, formation, well, depth (e.g. 3180, mud loss, KG-07)..."
+            placeholder="Search by hazard, formation, well, depth (e.g. 3118, mud loss, OIL-NWIS-02)..."
             className="w-full bg-[#0A101D] border border-slate-700/80 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 shadow-inner"
           />
         </div>
@@ -218,6 +228,7 @@ export const LessonsLearnedRepository: React.FC = () => {
         ) : (
           filteredEvents.map((evt, idx) => {
             const sev = SEVERITY_CONFIG[evt.severity];
+            const relevantNow = Math.abs(evt.depthM - telemetry.measuredDepthM) <= 50;
             return (
               <div key={evt.id} className="relative pl-6 group">
                 {/* Vertical Timeline Stem */}
@@ -231,7 +242,7 @@ export const LessonsLearnedRepository: React.FC = () => {
                 />
 
                 {/* Event Card */}
-                <div className="bg-[#0A101D] border border-slate-800/90 rounded-xl p-3 shadow-md hover:border-slate-700 transition-all">
+                <div className={`bg-[#0A101D] border rounded-xl p-3 shadow-md hover:border-slate-700 transition-all ${relevantNow ? 'border-orange-500/80 border-l-4' : 'border-slate-800/90'}`}>
                   {/* Card Header */}
                   <div className="flex items-start justify-between gap-2 mb-1.5">
                     <div>
@@ -259,6 +270,7 @@ export const LessonsLearnedRepository: React.FC = () => {
                       {sev.icon}
                       <span>{evt.hazardName}</span>
                     </span>
+                    {relevantNow && <span className="ml-1 inline-flex rounded-full border border-orange-600/70 bg-orange-950 px-2 py-0.5 text-[9px] font-bold text-orange-200">RELEVANT NOW</span>}
                   </div>
 
                   {/* Incident Description */}

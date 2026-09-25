@@ -36,6 +36,9 @@ CREATE TABLE IF NOT EXISTS wells (
     well_id         TEXT PRIMARY KEY,
     operator        TEXT,
     field_name      TEXT,
+    status          TEXT DEFAULT 'offset',
+    current_depth_m REAL,
+    current_formation TEXT,
     spud_date       TEXT,
     completion_date TEXT,
     latitude        REAL,
@@ -47,6 +50,7 @@ CREATE TABLE IF NOT EXISTS events (
     event_id        INTEGER PRIMARY KEY AUTOINCREMENT,
     well_id         TEXT NOT NULL,
     event_type      TEXT NOT NULL,
+    severity        TEXT,
     depth_m         REAL,
     formation       TEXT,
     event_date      TEXT,
@@ -182,6 +186,44 @@ class DatabaseService:
         """Initializes database tables and indexes if they do not already exist."""
         with self.get_connection() as conn:
             conn.executescript(SCHEMA_SQL)
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(wells)")}
+            if "status" not in columns:
+                conn.execute("ALTER TABLE wells ADD COLUMN status TEXT DEFAULT 'offset'")
+            if "current_depth_m" not in columns:
+                conn.execute("ALTER TABLE wells ADD COLUMN current_depth_m REAL")
+            if "current_formation" not in columns:
+                conn.execute("ALTER TABLE wells ADD COLUMN current_formation TEXT")
+            event_columns = {row[1] for row in conn.execute("PRAGMA table_info(events)")}
+            if "severity" not in event_columns:
+                conn.execute("ALTER TABLE events ADD COLUMN severity TEXT")
+
+    def seed_demo_data(self) -> bool:
+        """Insert the deterministic NWIS foundation dataset exactly once."""
+        from src.layer4_knowledge_graph.seed_data import (
+            SEED_SOURCE_DOC, SEED_WELLS, build_seed_result,
+        )
+        with self.get_connection() as conn:
+            if conn.execute(
+                "SELECT 1 FROM documents WHERE source_doc = ?", (SEED_SOURCE_DOC,)
+            ).fetchone():
+                return False
+            for well in SEED_WELLS:
+                conn.execute(
+                    """INSERT INTO wells
+                    (well_id, operator, field_name, status, current_depth_m, current_formation,
+                     spud_date, completion_date, latitude, longitude, total_depth_m)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (well.well_id, well.operator, well.field_name,
+                     "active" if well.well_id == "OIL-NWIS-01" else "offset",
+                     3108.0 if well.well_id == "OIL-NWIS-01" else well.total_depth_m,
+                     "Northwind Sandstone",
+                     well.spud_date.isoformat() if well.spud_date else None,
+                     well.completion_date.isoformat() if well.completion_date else None,
+                     well.latitude, well.longitude, well.total_depth_m),
+                )
+        # store_extraction_result owns the existing child-table serialization.
+        self.store_extraction_result(build_seed_result())
+        return True
 
     def create_ingestion_job(self, job_id: str, filename: str, stored_path: str) -> Dict[str, Any]:
         """Create a durable queued job record."""
@@ -255,10 +297,10 @@ class DatabaseService:
                     """
                     INSERT INTO events (
                         well_id, event_type, depth_m, formation, event_date,
-                        description, symptom, action_taken, confidence,
+                        severity, description, symptom, action_taken, confidence,
                         source_doc, source_page, source_snippet
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         ev.well_id,
@@ -266,6 +308,7 @@ class DatabaseService:
                         ev.depth_m,
                         ev.formation,
                         ev.event_date.isoformat() if ev.event_date else None,
+                        ev.severity,
                         ev.description,
                         ev.symptom,
                         ev.action_taken,
@@ -537,6 +580,32 @@ class DatabaseService:
             dist_km = haversine_distance(center_lat, center_lon, float(lat), float(lon))
             if dist_km <= radius_km:
                 w_dict["distance_km"] = round(dist_km, 4)
+                with self.get_connection() as event_conn:
+                    event_conn.row_factory = sqlite3.Row
+                    event = event_conn.execute(
+                        """
+                        SELECT event_type, severity, depth_m, description
+                        FROM events
+                        WHERE well_id = ?
+                        ORDER BY CASE severity
+                            WHEN 'critical' THEN 0
+                            WHEN 'high' THEN 1
+                            WHEN 'medium' THEN 2
+                            ELSE 3
+                        END, depth_m
+                        LIMIT 1
+                        """,
+                        (well_id,),
+                    ).fetchone()
+                if event:
+                    w_dict["hazard"] = (
+                        f"{event['event_type']} at {event['depth_m']:.0f} m"
+                        if event["depth_m"] is not None
+                        else str(event["event_type"])
+                    )
+                    w_dict["status"] = event["severity"] or w_dict.get("status", "offset")
+                    w_dict["hazard_event_type"] = event["event_type"]
+                    w_dict["hazard_description"] = event["description"]
                 nearby_wells.append(w_dict)
 
         # Sort nearest-first
@@ -676,6 +745,33 @@ class DatabaseService:
                 (well_id,),
             ).fetchall()
             return [dict(r) for r in rows]
+
+    def get_well_formations(self, well_id: str) -> List[Dict[str, Any]]:
+        """Return formation tops for a well in measured-depth order."""
+        with self.get_connection() as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT * FROM formation_tops WHERE well_id = ? ORDER BY top_depth_m",
+                (well_id,),
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    def get_well_program(self, well_id: str) -> Dict[str, List[Dict[str, Any]]]:
+        """Return casing, cementing, and mud program records for a well."""
+        with self.get_connection() as conn:
+            conn.row_factory = sqlite3.Row
+            result: Dict[str, List[Dict[str, Any]]] = {}
+            for name, table in (
+                ("casing_program", "casing_program"),
+                ("cementing_records", "cementing_records"),
+                ("mud_program", "mud_program"),
+            ):
+                rows = conn.execute(
+                    f"SELECT * FROM {table} WHERE well_id = ? ORDER BY id",
+                    (well_id,),
+                ).fetchall()
+                result[name] = [dict(r) for r in rows]
+            return result
 
     def search_events(
         self,
