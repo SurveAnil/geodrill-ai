@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Layers, AlertTriangle, Crosshair, ArrowDown, ChevronRight, Activity } from 'lucide-react';
 import { useDrillStore } from '@/store/useDrillStore';
 import { apiClient } from '@/lib/api';
+import Link from 'next/link';
 
 // Geological Depth Bounds for the correlation window
 const MIN_DEPTH = 2800;
@@ -101,7 +102,7 @@ export const StratigraphicCorrelation: React.FC = () => {
   const distanceToHazard = HAZARD_HORIZON.topM - currentMD;
 
   return (
-    <div className="flex flex-col h-full justify-between">
+    <div className="flex flex-col h-full justify-between p-4">
       {/* Header */}
       <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
         <div className="flex items-center gap-2">
@@ -113,7 +114,7 @@ export const StratigraphicCorrelation: React.FC = () => {
               Stratigraphic Depth Cross-Correlation
             </h3>
             <span className="text-[10px] text-slate-400 font-mono">
-              Layer 3 • Active Depth vs Offset Lithology
+              Depth Correlation • Active MD vs Offset Lithology
             </span>
           </div>
         </div>
@@ -141,14 +142,14 @@ export const StratigraphicCorrelation: React.FC = () => {
       <div className="relative my-3 flex-1 min-h-[220px] bg-[#070B14] rounded-lg border border-slate-800/90 p-3 flex gap-3 overflow-hidden">
         {/* Y-Axis Depth Scale */}
         <div className="w-14 flex flex-col justify-between text-[10px] font-mono text-slate-500 border-r border-slate-800/80 pr-2 select-none">
-          <span style={{ fontVariantNumeric: 'tabular-nums' }}>2,200m</span>
-          <span style={{ fontVariantNumeric: 'tabular-nums' }}>2,400m</span>
-          <span style={{ fontVariantNumeric: 'tabular-nums' }} className="text-amber-400/80">
-            2,450m
-          </span>
-          <span style={{ fontVariantNumeric: 'tabular-nums' }}>2,600m</span>
           <span style={{ fontVariantNumeric: 'tabular-nums' }}>2,800m</span>
-          <span style={{ fontVariantNumeric: 'tabular-nums' }}>3,000m</span>
+          <span style={{ fontVariantNumeric: 'tabular-nums' }}>2,950m</span>
+          <span style={{ fontVariantNumeric: 'tabular-nums' }} className="text-amber-400/80">
+            3,100m
+          </span>
+          <span style={{ fontVariantNumeric: 'tabular-nums' }}>3,250m</span>
+          <span style={{ fontVariantNumeric: 'tabular-nums' }}>3,400m</span>
+          <span style={{ fontVariantNumeric: 'tabular-nums' }}>3,500m</span>
         </div>
 
         {/* Tracks Area (Relative container for absolute bit projection line) */}
@@ -212,22 +213,6 @@ export const StratigraphicCorrelation: React.FC = () => {
                 );
               })}
 
-              {/* HAZARD HORIZON OVERLAY (keeps the warning readable over formation labels) */}
-              <div
-                style={{
-                  top: `${hazardTopPct}%`,
-                  height: `${hazardHeightPct}%`,
-                }}
-                className="absolute inset-x-0 bg-red-950/95 border-2 border-red-500/90 rounded px-2 flex items-center justify-between shadow-[0_0_15px_rgba(239,68,68,0.3)] z-10 isolate pointer-events-none animate-pulse"
-              >
-                <div className="flex items-center gap-1 text-[9.5px] font-bold text-red-100 font-mono bg-red-950 px-1 rounded">
-                  <AlertTriangle className="w-3 h-3 text-red-400 flex-shrink-0" />
-                  <span className="truncate">{HAZARD_HORIZON.name} ({HAZARD_HORIZON.lossRate})</span>
-                </div>
-                <span className="text-[8.5px] font-mono text-red-100 bg-red-900 px-1 py-0.5 rounded whitespace-nowrap">
-                  2,440–2,500m
-                </span>
-              </div>
             </div>
 
             <div className="text-[10px] font-mono text-slate-400 pt-1 border-t border-slate-800/80 flex items-center justify-between">
@@ -259,6 +244,7 @@ export const StratigraphicCorrelation: React.FC = () => {
           </div>
         </div>
       </div>
+      <div className="grid gap-3 rounded-lg border border-orange-800/50 bg-orange-950/15 p-3 text-xs md:grid-cols-[1fr_auto]"><div><p className="font-semibold text-orange-200">Incidents at this horizon</p><p className="mt-1 text-slate-300">OIL-NWIS-04 recorded mud loss at 3,172 m in the comparable Northwind interval.</p></div><div className="flex items-center gap-3"><Link href="/lessons?evidence=northwind" className="text-cyan-300">View incident →</Link><Link href={`/ai?prompt=${encodeURIComponent('What offset-well incidents are relevant to the Northwind Sandstone zone at my current depth?')}`} className="text-purple-300">Ask AI about this zone →</Link></div></div>
 
       {/* Stratigraphic Correlation Summary Footer */}
       <div className="text-[11px] text-slate-400 border-t border-slate-800/60 pt-2 font-mono flex items-center justify-between">
@@ -266,7 +252,7 @@ export const StratigraphicCorrelation: React.FC = () => {
           <Activity className="w-3 h-3 text-cyan-400" />
           <span>{correlationLabel}: <strong className="text-emerald-400">94.2%</strong></span>
         </span>
-        <span className="text-amber-400 font-semibold">Layer 3 Stratigraphy Active</span>
+        <span className="text-amber-400 font-semibold">Correlation online</span>
       </div>
     </div>
   );

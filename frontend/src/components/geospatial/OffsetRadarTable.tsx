@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { AlertCircle, AlertTriangle, CheckCircle2, Navigation } from 'lucide-react';
+import { formatHazardLabel } from '@/lib/presentation';
 
 export interface OffsetWellItem {
   id: string;
@@ -58,6 +59,7 @@ export const OffsetRadarTable: React.FC<OffsetRadarTableProps> = ({
   wells = [],
   radiusKm = 10,
 }) => {
+  const [expandedWellId, setExpandedWellId] = useState<string | null>(null);
   return (
     <div className="w-full flex flex-col">
       <div className="flex items-center justify-between mb-2">
@@ -82,10 +84,14 @@ export const OffsetRadarTable: React.FC<OffsetRadarTableProps> = ({
             {wells.map((well) => {
               const cfg = STATUS_CONFIG[well.status];
               const isSelected = selectedWellId === well.id;
-              return (
-                <tr
+              return <React.Fragment key={well.id}><tr
                   key={well.id}
-                  onClick={() => onSelectWell?.(well)}
+                  onClick={() => { onSelectWell?.(well); setExpandedWellId(expandedWellId === well.id ? null : well.id); }}
+                  onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelectWell?.(well); setExpandedWellId(expandedWellId === well.id ? null : well.id); } }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Show incident summary for ${well.name}`}
+                  aria-expanded={expandedWellId === well.id}
                   className={`transition-colors cursor-pointer ${cfg.bg} ${
                     isSelected ? 'ring-1 ring-cyan-500 bg-cyan-950/30' : ''
                   }`}
@@ -106,7 +112,7 @@ export const OffsetRadarTable: React.FC<OffsetRadarTableProps> = ({
                     <span className="text-[10px] text-slate-500 font-normal ml-0.5">km</span>
                   </td>
                   <td className="py-2 px-2.5 text-slate-300 text-[11px] max-w-[140px] truncate" title={well.hazard}>
-                    {well.hazard}
+                    {formatHazardLabel(well.hazard)}
                   </td>
                   <td className="py-2 px-2 text-center">
                     <span
@@ -116,8 +122,7 @@ export const OffsetRadarTable: React.FC<OffsetRadarTableProps> = ({
                       {cfg.label}
                     </span>
                   </td>
-                </tr>
-              );
+                </tr>{expandedWellId === well.id && <tr className="bg-slate-950/60"><td colSpan={4} className="px-3 py-2 text-[11px] text-slate-300"><span className="font-semibold text-cyan-300">Incident summary:</span> {formatHazardLabel(well.hazard)}. Compare this offset evidence with the active well&apos;s depth and Northwind Sandstone formation context.</td></tr>}</React.Fragment>;
             })}
           </tbody>
         </table>

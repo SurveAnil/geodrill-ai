@@ -2,14 +2,11 @@
 
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { DashboardGrid } from '@/components/layout/DashboardGrid';
 import { TriageHero } from '@/components/triage/TriageHero';
-import { TelemetryPanel } from '@/components/telemetry/TelemetryPanel';
-import { GeospatialPanel } from '@/components/geospatial/GeospatialPanel';
-import { AIPanelContainer } from '@/components/ai/AIPanelContainer';
-import { StratigraphicCorrelation } from '@/components/stratigraphy/StratigraphicCorrelation';
-import { LessonsLearnedRepository } from '@/components/lessons/LessonsLearnedRepository';
+import { EvidenceTrail } from '@/components/triage/EvidenceTrail';
+import Link from 'next/link';
+import { DEMO_OFFSET_WELLS } from '@/lib/presentation';
 
 export default function OverviewPage() {
-  return <AppShell><PageHeader title="Operations overview" description="Live drilling context, risk triage, and offset-well intelligence." /><DashboardGrid heroSlot={<TriageHero />} leftSlot={<GeospatialPanel />} centerSlot={<AIPanelContainer />} rightSlot={<TelemetryPanel />} bottomLeftSlot={<StratigraphicCorrelation />} bottomRightSlot={<LessonsLearnedRepository />} /></AppShell>;
+  return <AppShell><PageHeader title="Operations overview" description="Current drilling context, risk triage, and offset-well intelligence." /><div className="mx-auto max-w-6xl space-y-4"><TriageHero /><EvidenceTrail /><div className="grid gap-4 md:grid-cols-3"><section className="ops-panel p-4"><p className="ops-eyebrow">Offset wells</p><p className="mt-1 text-lg font-semibold">3 relevant wells</p><p className="mt-1 text-xs text-slate-400">Historical incidents are available near the active depth.</p><Link href="/offset-wells" className="mt-3 inline-block text-xs text-cyan-300">Explore wells →</Link></section><section className="ops-panel p-4"><p className="ops-eyebrow">Formation risk</p><p className="mt-1 text-lg font-semibold">Northwind Sandstone</p><p className="mt-1 text-xs text-slate-400">Offset incidents span 3,096–3,172 m MD.</p><Link href="/stratigraphy" className="mt-3 inline-block text-xs text-cyan-300">View stratigraphy →</Link></section><section className="ops-panel p-4"><p className="ops-eyebrow">Knowledge base</p><p className="mt-1 text-lg font-semibold">Evidence ready</p><p className="mt-1 text-xs text-slate-400">Query traceable offset-well records and manage source documents.</p><Link href="/ai" className="mt-3 inline-block text-xs text-cyan-300">Open AI Copilot →</Link></section></div><section className="ops-panel overflow-hidden"><div className="flex items-center justify-between px-4 py-3"><div><p className="text-sm font-semibold">Relevant offset wells</p><p className="text-xs text-slate-400">Compact comparison at the current operational context.</p></div><Link href="/offset-wells" className="text-xs text-cyan-300">Full comparison →</Link></div><div className="divide-y divide-slate-800">{DEMO_OFFSET_WELLS.map(well => <div key={well.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-xs"><span className="font-mono font-semibold text-cyan-300">{well.name}</span><span className="text-slate-400">{well.distanceKm} km</span><span className="text-slate-300">{well.hazard}</span></div>)}</div></section></div></AppShell>;
 }

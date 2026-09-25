@@ -5,11 +5,12 @@ import {
   Activity,
   Compass,
   Layers,
+  Menu,
 } from 'lucide-react';
 import { useDrillStore } from '@/store/useDrillStore';
 import { apiClient, toTelemetryPoint } from '@/lib/api';
 
-export const TopNav: React.FC = () => {
+export const TopNav: React.FC<{ onMenuOpen?: () => void }> = ({ onMenuOpen }) => {
   const {
     activeWellId,
     wellName,
@@ -87,6 +88,7 @@ export const TopNav: React.FC = () => {
       <div className="max-w-[1920px] mx-auto px-4 py-2.5 flex items-center justify-between gap-4">
         {/* Left: Branding & Active Rig Metadata */}
         <div className="flex items-center gap-4">
+          <button onClick={onMenuOpen} className="rounded border border-slate-700 p-1.5 text-slate-300 md:hidden" aria-label="Open navigation"><Menu className="h-4 w-4" /></button>
           <div className="flex items-center gap-2.5">
             <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
               <Compass className="w-5 h-5 text-white animate-spin-slow" />
@@ -153,8 +155,8 @@ export const TopNav: React.FC = () => {
           <span className="rounded border border-slate-700 px-2 py-1 text-[10px] font-mono text-slate-300">
             Alerts: {alertCount}
           </span>
-          <span className={`text-[10px] font-mono ${backendStatus === 'online' ? 'text-emerald-400' : backendStatus === 'unavailable' ? 'text-amber-400' : 'text-slate-500'}`}>
-            API: {backendStatus === 'online' ? 'CONNECTED' : backendStatus === 'unavailable' ? 'UNAVAILABLE' : 'DEMO'}
+          <span className={`hidden sm:flex items-center gap-1 text-[10px] font-mono ${backendStatus === 'online' ? 'text-emerald-400' : backendStatus === 'unavailable' ? 'text-amber-400' : 'text-slate-500'}`}>
+            <span className="h-1.5 w-1.5 rounded-full bg-current" /> API: {backendStatus === 'online' ? 'CONNECTED' : backendStatus === 'unavailable' ? 'UNAVAILABLE' : 'DEMO'}
           </span>
         </div>
       </div>

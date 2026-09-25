@@ -92,8 +92,8 @@ const GAUGES: GaugeDef[] = [
     color: 'text-purple-400',
     accentBg: 'bg-purple-950/60',
     accentBorder: 'border-purple-800/50',
-    warningHigh: 3800,
-    criticalHigh: 4200,
+    warningHigh: 14500,
+    criticalHigh: 15000,
     getValue: (t) => t.standpipePressure,
     format: (v) => v.toFixed(0),
   },
@@ -153,7 +153,7 @@ const GaugeCell: React.FC<{
           <div className={`p-1 rounded ${def.accentBg} border ${def.accentBorder}`}>
             {def.icon}
           </div>
-          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wide">
+          <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wide">
             {def.label}
           </span>
         </div>
@@ -166,7 +166,7 @@ const GaugeCell: React.FC<{
         style={{ fontVariantNumeric: 'tabular-nums' }}
       >
         {def.format(value)}
-        <span className="text-[10px] text-slate-500 font-normal ml-1">{def.unit}</span>
+        <span className="text-[11px] text-slate-400 font-normal ml-1">{def.unit}</span>
       </div>
     </div>
   );

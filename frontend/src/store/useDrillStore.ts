@@ -41,6 +41,7 @@ interface DrillStore {
   activeWellLocation: { latitude: number; longitude: number };
   operatingMode: 'DEMO' | 'LIVE' | 'SIMULATED';
   alertCount: number;
+  acknowledgedAt?: string;
 
   // Real-time Telemetry (10Hz stream state)
   telemetry: TelemetryData;
@@ -74,6 +75,7 @@ interface DrillStore {
   stepSimulation: () => void;
   setRisk: (risk: RiskState) => void;
   setBackendStatus: (status: DrillStore['backendStatus']) => void;
+  acknowledgeCurrentRisk: () => void;
 }
 
 export const SCENARIO_PRESETS: Record<
@@ -191,7 +193,7 @@ export const useDrillStore = create<DrillStore>((set, get) => ({
   targetTotalDepthM: 3415.0,
   activeWellLocation: { latitude: 58.4121, longitude: 1.8422 },
   operatingMode: 'DEMO',
-  alertCount: 0,
+  alertCount: 1,
 
   telemetry: SCENARIO_PRESETS.approaching_northwind_losses.telemetry,
   risk: SCENARIO_PRESETS.approaching_northwind_losses.risk,
@@ -291,4 +293,9 @@ export const useDrillStore = create<DrillStore>((set, get) => ({
   },
   setRisk: (risk) => set({ risk }),
   setBackendStatus: (backendStatus) => set({ backendStatus }),
+  acknowledgeCurrentRisk: () => set((state) => ({
+    alertCount: 0,
+    acknowledgedAt: new Date().toISOString(),
+    risk: { ...state.risk, immediateAction: 'Alert acknowledged. Continue monitoring telemetry and follow the approved well programme.' },
+  })),
 }));

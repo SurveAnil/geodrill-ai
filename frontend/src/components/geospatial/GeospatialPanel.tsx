@@ -6,6 +6,7 @@ import { MapPin, Compass, Radio } from 'lucide-react';
 import { OffsetRadarTable, OffsetWellItem } from './OffsetRadarTable';
 import { apiClient, NearbyWell } from '@/lib/api';
 import { useDrillStore } from '@/store/useDrillStore';
+import { DEMO_OFFSET_WELLS } from '@/lib/presentation';
 
 // Dynamically import WellMap to bypass SSR for Leaflet window dependencies
 const DynamicWellMap = dynamic(
@@ -45,12 +46,12 @@ export const GeospatialPanel: React.FC = () => {
       })).filter((item) => Number.isFinite(item.lat) && Number.isFinite(item.lon));
       setWells(mapped);
       setLoaded(true);
-    }).catch(() => { setWells([]); setApiUnavailable(true); setLoaded(true); });
+    }).catch(() => { setWells(DEMO_OFFSET_WELLS); setApiUnavailable(true); setLoaded(true); });
   }, [activeWellId, activeWellLocation.latitude, activeWellLocation.longitude, radiusKm]);
   const displayedWells = wells;
 
   return (
-    <div className="flex flex-col h-full gap-3">
+    <div className="flex flex-col h-full gap-3 p-4">
       {/* Panel Header */}
       <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
@@ -83,8 +84,8 @@ export const GeospatialPanel: React.FC = () => {
       {/* Offset Wells Radar Table */}
       <div className="mt-1">
         {!loaded ? <p className="rounded-lg border border-slate-800 p-4 text-xs text-slate-500">Loading nearby wells from backend…</p> :
-          apiUnavailable ? <p className="rounded-lg border border-amber-800/60 bg-amber-950/20 p-4 text-xs text-amber-300">Nearby-well service unavailable. No operational offset values are shown.</p> :
-          !displayedWells.length ? <p className="rounded-lg border border-slate-800 p-4 text-xs text-slate-500">No nearby wells returned for this active-well location.</p> :
+          !displayedWells.length ? <p className="rounded-lg border border-slate-800 p-4 text-xs text-slate-500">No nearby wells returned for this active-well location.</p> : <>
+          {apiUnavailable && <div className="mb-3 rounded-lg border border-amber-800/60 bg-amber-950/20 p-3 text-xs text-amber-200">Basemap and spatial service unavailable — demo offset-well evidence is shown below.</div>}
           <OffsetRadarTable
             selectedWellId={selectedWell?.id}
             radiusKm={radiusKm}
@@ -102,7 +103,7 @@ export const GeospatialPanel: React.FC = () => {
               });
             }}
             wells={displayedWells}
-          />}
+          /></>}
       </div>
 
       {/* Footer Meta */}
@@ -111,7 +112,7 @@ export const GeospatialPanel: React.FC = () => {
           <Radio className="w-3 h-3 text-cyan-400 animate-pulse" />
           <span>Haversine Spatial Index</span>
         </span>
-         <span className={apiUnavailable ? 'text-amber-400' : 'text-cyan-400'}>{apiUnavailable ? 'Backend unavailable — no fallback data' : 'Backend canonical data'}</span>
+         <span className={apiUnavailable ? 'text-amber-400' : 'text-cyan-400'}>{apiUnavailable ? 'Demo fallback data' : 'Backend canonical data'}</span>
       </div>
     </div>
   );

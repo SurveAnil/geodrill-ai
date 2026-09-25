@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useDrillStore, RiskLevel } from '@/store/useDrillStore';
 import { apiClient } from '@/lib/api';
+import { EvidenceTrail } from './EvidenceTrail';
 
 /* ------------------------------------------------------------------ */
 /*  Risk-level → visual theme mapping                                  */
@@ -150,7 +151,7 @@ const ScoreArc: React.FC<{ score: number; color: string }> = ({ score, color }) 
 /*  TRIAGE HERO — main export                                          */
 /* ================================================================== */
 export const TriageHero: React.FC = () => {
-  const { telemetry, risk, setRisk } = useDrillStore();
+  const { telemetry, risk, setRisk, acknowledgeCurrentRisk } = useDrillStore();
   const [acknowledged, setAcknowledged] = useState(false);
   const theme = RISK_THEMES[risk.riskLevel];
   const isCritical = risk.riskLevel === 'critical';
@@ -169,14 +170,15 @@ export const TriageHero: React.FC = () => {
       alertId: undefined,
       immediateAction: 'Alert acknowledged. Continue monitoring telemetry and the approved well programme.',
     });
+    acknowledgeCurrentRisk();
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
       {/* ============================================================ */}
       {/*  CARD 1 — Current Drill Bit Position                         */}
       {/* ============================================================ */}
-      <div className="relative bg-slate-800/50 border border-slate-700/80 rounded-xl p-4 shadow-md overflow-hidden">
+      <div className="relative bg-slate-800/50 border border-slate-700/80 rounded-xl p-4 shadow-md overflow-hidden lg:col-span-1">
         {/* Subtle left-edge accent */}
         <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl bg-gradient-to-b from-cyan-500 to-cyan-700" />
 
@@ -218,7 +220,7 @@ export const TriageHero: React.FC = () => {
         </div>
 
         {/* Formation & ROP sub-strip */}
-        <div className="flex items-center justify-between pt-2.5 border-t border-slate-700/60">
+        <div className="flex flex-col gap-2 pt-2.5 border-t border-slate-700/60 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-1.5 text-xs">
             <Layers className="w-3.5 h-3.5 text-amber-400" />
             <span className="text-slate-400">Formation:</span>
@@ -238,7 +240,7 @@ export const TriageHero: React.FC = () => {
       {/*  CARD 2 — Hazard Predicted Ahead                             */}
       {/* ============================================================ */}
       <div
-        className={`relative rounded-xl p-4 shadow-md overflow-hidden transition-all duration-500 ${theme.cardBg} border ${theme.border} ${theme.glow} ${theme.pulseClass}`}
+        className={`relative rounded-xl p-4 shadow-md overflow-hidden transition-all duration-500 lg:col-span-2 ${theme.cardBg} border ${theme.border} ${theme.glow} ${theme.pulseClass}`}
       >
         {/* Risk-colored left accent bar */}
         <div

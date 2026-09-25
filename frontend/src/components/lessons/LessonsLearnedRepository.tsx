@@ -17,6 +17,8 @@ import { useEffect } from 'react';
 import { apiClient } from '@/lib/api';
 import type { IncidentEvent } from '@/lib/api';
 import { useDrillStore } from '@/store/useDrillStore';
+import { useSearchParams } from 'next/navigation';
+import { formatHazardLabel } from '@/lib/presentation';
 
 export type HazardCategory = 'all' | 'mud_loss' | 'stuck_pipe' | 'kick';
 
@@ -105,11 +107,15 @@ const SEVERITY_CONFIG = {
 };
 
 export const LessonsLearnedRepository: React.FC = () => {
+  const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<HazardCategory>('all');
   const [events, setEvents] = useState<LessonEvent[]>(LESSON_EVENTS);
   const [apiUnavailable, setApiUnavailable] = useState(false);
   const { activeWellId, telemetry } = useDrillStore();
+  useEffect(() => {
+    if (searchParams.get('evidence') === 'northwind') setSearchQuery('Northwind');
+  }, [searchParams]);
   useEffect(() => {
     setApiUnavailable(false);
     apiClient.correlateIncidents(activeWellId, telemetry.measuredDepthM, telemetry.currentFormation).then((items) => {
@@ -118,7 +124,7 @@ export const LessonsLearnedRepository: React.FC = () => {
         return {
           id: String(item.event_id || `api-${index}`), depthM: Number(item.depth_m || 0),
           wellName: item.well_id || 'Offset well', formation: item.formation || 'Unknown formation',
-          hazardName: String(item.event_type || 'Historical incident').replace(/_/g, ' '),
+          hazardName: formatHazardLabel(item.event_type || 'Historical incident'),
           category, severity: item.severity === 'critical' ? 'critical' : item.severity === 'caution' ? 'caution' : 'warning',
           incidentDescription: item.description || item.source_snippet || 'Historical incident correlated near current depth.',
           mitigation: item.mitigation || 'Review the source report and approved well programme.',
@@ -149,7 +155,8 @@ export const LessonsLearnedRepository: React.FC = () => {
   }, [events, searchQuery, selectedCategory]);
 
   return (
-    <div className="flex flex-col h-full justify-between">
+    <div className="flex flex-col h-full justify-between p-4">
+      <div className="sticky top-0 z-10 -mt-4 -mx-4 mb-4 border-b border-cyan-800/50 bg-[#0B1120]/95 px-4 py-2 text-xs text-cyan-100 backdrop-blur">Currently drilling: <span className="font-mono font-semibold">{telemetry.measuredDepthM.toLocaleString()} m MD</span> • {telemetry.currentFormation}</div>
       {/* Header */}
       <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
         <div className="flex items-center gap-2">
@@ -221,6 +228,7 @@ export const LessonsLearnedRepository: React.FC = () => {
         ) : (
           filteredEvents.map((evt, idx) => {
             const sev = SEVERITY_CONFIG[evt.severity];
+            const relevantNow = Math.abs(evt.depthM - telemetry.measuredDepthM) <= 50;
             return (
               <div key={evt.id} className="relative pl-6 group">
                 {/* Vertical Timeline Stem */}
@@ -234,7 +242,7 @@ export const LessonsLearnedRepository: React.FC = () => {
                 />
 
                 {/* Event Card */}
-                <div className="bg-[#0A101D] border border-slate-800/90 rounded-xl p-3 shadow-md hover:border-slate-700 transition-all">
+                <div className={`bg-[#0A101D] border rounded-xl p-3 shadow-md hover:border-slate-700 transition-all ${relevantNow ? 'border-orange-500/80 border-l-4' : 'border-slate-800/90'}`}>
                   {/* Card Header */}
                   <div className="flex items-start justify-between gap-2 mb-1.5">
                     <div>
@@ -262,6 +270,7 @@ export const LessonsLearnedRepository: React.FC = () => {
                       {sev.icon}
                       <span>{evt.hazardName}</span>
                     </span>
+                    {relevantNow && <span className="ml-1 inline-flex rounded-full border border-orange-600/70 bg-orange-950 px-2 py-0.5 text-[9px] font-bold text-orange-200">RELEVANT NOW</span>}
                   </div>
 
                   {/* Incident Description */}
