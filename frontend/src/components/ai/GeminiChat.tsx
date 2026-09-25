@@ -52,7 +52,7 @@ export const GeminiChat: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
   const [inputQuery, setInputQuery] = useState('');
   const [isAiThinking, setIsAiThinking] = useState(false);
-  const [appliedDeepLink, setAppliedDeepLink] = useState(false);
+  const [appliedDeepLink, setAppliedDeepLink] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -65,7 +65,7 @@ export const GeminiChat: React.FC = () => {
 
   useEffect(() => {
     const prompt = searchParams.get('prompt');
-    if (prompt && !appliedDeepLink) { setInputQuery(prompt); setAppliedDeepLink(true); }
+    if (prompt && prompt !== appliedDeepLink) { setInputQuery(prompt); setAppliedDeepLink(prompt); }
   }, [searchParams, appliedDeepLink]);
 
   const handleSendMessage = async (textToSend?: string) => {

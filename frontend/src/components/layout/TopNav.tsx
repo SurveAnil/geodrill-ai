@@ -155,7 +155,7 @@ export const TopNav: React.FC<{ onMenuOpen?: () => void }> = ({ onMenuOpen }) =>
           <span className="rounded border border-slate-700 px-2 py-1 text-[10px] font-mono text-slate-300">
             Alerts: {alertCount}
           </span>
-          <span className={`hidden sm:flex items-center gap-1 text-[10px] font-mono ${backendStatus === 'online' ? 'text-emerald-400' : backendStatus === 'unavailable' ? 'text-amber-400' : 'text-slate-500'}`}>
+          <span className={`flex items-center gap-1 text-[9px] font-mono sm:text-[10px] ${backendStatus === 'online' ? 'text-emerald-400' : backendStatus === 'unavailable' ? 'text-amber-400' : 'text-slate-500'}`}>
             <span className="h-1.5 w-1.5 rounded-full bg-current" /> API: {backendStatus === 'online' ? 'CONNECTED' : backendStatus === 'unavailable' ? 'UNAVAILABLE' : 'DEMO'}
           </span>
         </div>

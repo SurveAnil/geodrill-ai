@@ -42,6 +42,7 @@ interface DrillStore {
   operatingMode: 'DEMO' | 'LIVE' | 'SIMULATED';
   alertCount: number;
   acknowledgedAt?: string;
+  acknowledgedRiskIdentity?: string;
 
   // Real-time Telemetry (10Hz stream state)
   telemetry: TelemetryData;
@@ -185,6 +186,8 @@ export const SCENARIO_PRESETS: Record<
   },
 };
 
+const getRiskIdentity = (risk: RiskState) => risk.alertId || `${risk.riskLevel}:${risk.predictedHazard}`;
+
 export const useDrillStore = create<DrillStore>((set, get) => ({
   activeWellId: 'OIL-NWIS-01',
   wellName: 'OIL-NWIS-01',
@@ -221,10 +224,16 @@ export const useDrillStore = create<DrillStore>((set, get) => ({
   setScenario: (scenarioKey: ScenarioType) => {
     const preset = SCENARIO_PRESETS[scenarioKey];
     if (!preset) return;
-    set({
-      selectedScenario: scenarioKey,
-      telemetry: { ...preset.telemetry },
-      risk: { ...preset.risk },
+    set((state) => {
+      const identityChanged = getRiskIdentity(state.risk) !== getRiskIdentity(preset.risk);
+      return {
+        selectedScenario: scenarioKey,
+        telemetry: { ...preset.telemetry },
+        risk: { ...preset.risk },
+        acknowledgedAt: identityChanged ? undefined : state.acknowledgedAt,
+        acknowledgedRiskIdentity: identityChanged ? undefined : state.acknowledgedRiskIdentity,
+        alertCount: identityChanged && ['high', 'critical'].includes(preset.risk.riskLevel) ? 1 : state.alertCount,
+      };
     });
   },
 
@@ -291,11 +300,19 @@ export const useDrillStore = create<DrillStore>((set, get) => ({
       },
     });
   },
-  setRisk: (risk) => set({ risk }),
+  setRisk: (risk) => set((state) => {
+    const identityChanged = getRiskIdentity(state.risk) !== getRiskIdentity(risk);
+    return {
+      risk,
+      acknowledgedAt: identityChanged ? undefined : state.acknowledgedAt,
+      acknowledgedRiskIdentity: identityChanged ? undefined : state.acknowledgedRiskIdentity,
+      alertCount: identityChanged && ['high', 'critical'].includes(risk.riskLevel) ? 1 : state.alertCount,
+    };
+  }),
   setBackendStatus: (backendStatus) => set({ backendStatus }),
   acknowledgeCurrentRisk: () => set((state) => ({
     alertCount: 0,
     acknowledgedAt: new Date().toISOString(),
-    risk: { ...state.risk, immediateAction: 'Alert acknowledged. Continue monitoring telemetry and follow the approved well programme.' },
+    acknowledgedRiskIdentity: getRiskIdentity(state.risk),
   })),
 }));

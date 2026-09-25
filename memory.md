@@ -135,6 +135,25 @@ Do not replace or reopen Leaflet initialization, sizing, or CARTO behavior witho
 
 Telemetry is DEMO/SIMULATED and process-local, not production eRTMAC live telemetry. Validated ingestion returns HTTP 202. The UI labels simulated values clearly. Do not describe this as live drilling telemetry.
 
+### Phase 1 telemetry request behavior (implemented and frozen)
+
+- `frontend/src/components/layout/TopNav.tsx` owns the API publisher while the shared `AppShell`/`TopNav` instance is mounted.
+- The publisher uses one `setInterval` at **1000 ms** while `isStreaming10Hz` is true.
+- It sends one `POST /api/v1/telemetry` per interval. The `busy` guard prevents overlapping iterations within that timer.
+- After every 10 successful telemetry posts, it sends one `POST /api/v1/predictive-risk` and one `POST /api/v1/alerts` using `Promise.all`.
+- Effective network rates are approximately telemetry 1 request/second and risk/alerts 1 request/10 successful telemetry samples, or approximately 0.1 request/second each under healthy responses.
+- The separate 100 ms simulation timer advances local Zustand telemetry only when `isSimulating` is enabled; it does not directly issue HTTP requests.
+- Both timers return `clearInterval` cleanup functions. No recursive request chain or duplicate timer bug was found. React Strict Mode cleanup is correct.
+- Route navigation unmounts the page-owned `AppShell` and cleans up the `TopNav` timer. Multiple browser tabs/windows can each create their own publisher.
+- `OPTIONS` requests are normal CORS preflights for cross-origin requests. `202 Accepted` from telemetry is the expected ingestion contract.
+- The `10Hz` UI terminology remains accepted Phase 1 terminology; it refers to the simulated/local stream, while network transport is 1 Hz.
+
+### Telemetry status
+
+- **IMPLEMENTED:** simulated telemetry, bounded ingestion, deterministic periodic risk and alert evaluation, cleanup, and UI stream controls.
+- **KNOWN LIMITATION:** process-local/demo state; network transport is 1 Hz despite the 10 Hz label; no durable stream broker, tab coordination, batching, or external notification system.
+- **PHASE 2 PLANNED:** replace the simulated source with a stable external telemetry contract and auditable durable alert state. Do not change the Phase 1 timer architecture merely to reduce log volume.
+
 ## 14. Alerts
 
 Alert evaluation is deterministic and process-local/simulated. Acknowledgement is not a durable production notification system. No external notifications or production alert persistence are implemented.
@@ -160,6 +179,13 @@ The ingestion surface supports PDF, DOCX, LAS, and WITSML-labelled workflows acc
 - Radius `10 → 25 → 50 → 10` verified.
 - `OIL-NWIS-02` persisted across route navigation and direct refresh.
 - `/offset-wells` renders with active marker and canonical nearby wells.
+
+The final Phase 1 browser UAT covered canonical well selection and persistence, nearby-well API results, radius synchronization, Leaflet/CARTO rendering, telemetry, stratigraphy, lessons, alerts, and Copilot. The observed high request volume matched the intentional timer rates above and was not treated as a duplicate-request defect.
+
+### CORS handoff status
+
+- **IMPLEMENTED:** localhost and `127.0.0.1` development origins plus configured deployment origins/preview regex are supported through environment configuration.
+- **KNOWN LIMITATION:** `http://192.168.56.1:3000` is rejected unless explicitly configured as `GEODRILL_CORS_ORIGINS`. This only affects LAN-origin local access; localhost and deployed Vercel demonstrations remain supported. Do not modify CORS solely for this accepted Phase 1 limitation.
 
 ## 19. Hydration warning
 
@@ -291,13 +317,13 @@ Planning guidance, not implemented scope: retain a deterministic synthetic North
 
 ## 24. Git / branch state
 
-- Source worktree branch: `agents/project-restructuring-plan`.
+- Source worktree branch at handoff preparation: `codex/ertmac-nwis-ux-remediation`.
 - Intended target repository: `C:\Users\Anil\Desktop\geodrill-ai`.
 - Previous baseline: `main` / `origin/main`.
 - Intended Phase 1 commit message: `feat: complete Phase 1 NWIS operational foundation`.
-- Phase 1 commit: `75b1a8d`.
+- Earlier Phase 1 handoff commit: `75b1a8d`; the later UX remediation work is on the current branch.
 - Remote branch: `origin/agents/project-restructuring-plan`.
-- Never commit directly to `main`; push only `agents/project-restructuring-plan` after verification.
+- Never commit directly to `main`. Before the final Git operation, verify the requested destination branch and do not silently merge, reset, clean, or overwrite unrelated work.
 
 ## 25. Handoff rules for future agents
 
@@ -315,3 +341,30 @@ Before modifying code:
 10. Do not start Phase 2 while Phase 1 is being validated/frozen.
 11. Update `memory.md` for significant architectural changes.
 12. Record validation results after substantial changes.
+
+## 26. Final Phase 1 freeze classification
+
+### IMPLEMENTED
+
+- Canonical deterministic Northwind operational foundation and shared active-well context.
+- Backend API contracts for wells, nearby wells, formations/programs, incidents, telemetry, trajectory, risk, alerts, ingestion, and Copilot.
+- Frontend routes for overview, telemetry, AI/Copilot, offset wells, stratigraphy, lessons, and alerts.
+- Leaflet map with CARTO Voyager configuration through ignored environment files.
+- Radius synchronization, active-well selection/persistence, telemetry/risk/alert flow, stratigraphy validation fix, and browser-verified UAT.
+- Phase 1 handoff documentation in this file without credentials or API keys.
+
+### KNOWN LIMITATION
+
+- Demo/simulated telemetry and deterministic heuristic risk are not production eRTMAC or trained ML.
+- Chroma/SQLite may contain legacy Volve/Hugin/`15/9-F-*` records and currently lack full retrieval scoping.
+- OCR/NER and scanned-document extraction require manual review.
+- LAN-origin CORS for `192.168.56.1:3000` requires explicit configuration; localhost and deployment paths are accepted.
+- Next.js may warn about multiple lockfiles during build.
+
+### PHASE 2 PLANNED
+
+- Formal dataset/source/field/well scoping for Chroma and SQLite retrieval.
+- Curated validation dataset kept separate from synthetic Northwind demo data.
+- Durable telemetry and alert state, stronger evidence grounding, document intelligence, formation-aware retrieval, and validated hybrid risk intelligence.
+
+Phase 1 is **COMPLETE / FROZEN**. Future agents must read this file, verify Git state, preserve the canonical Northwind dataset and working map, run the documented validations, and obtain explicit approval before starting Phase 2 or changing frozen functional behavior.

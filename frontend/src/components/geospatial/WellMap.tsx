@@ -152,7 +152,7 @@ export const WellMap: React.FC<WellMapProps> = ({
         })}
       </MapContainer>
 
-      {!cartoTileUrl && <div className="absolute bottom-9 right-2 z-[400] rounded border border-amber-700/70 bg-[#0B1120]/95 px-2 py-1 text-[10px] text-amber-200 shadow-md">Basemap unavailable — demo mode</div>}
+      {!cartoTileUrl && <div className="absolute bottom-9 right-2 z-[400] rounded border border-amber-700/70 bg-[#0B1120]/95 px-2 py-1 text-[10px] text-amber-200 shadow-md">Basemap unavailable</div>}
 
       {/* Map Legend Overlay */}
       <div className="absolute bottom-2 left-2 z-[400] bg-[#0B1120]/90 border border-slate-800/90 rounded px-2 py-1 text-[10px] font-mono text-slate-400 flex items-center gap-3 backdrop-blur-sm shadow-md">

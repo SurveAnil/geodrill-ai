@@ -67,6 +67,7 @@ const HAZARD_HORIZON = {
 export const StratigraphicCorrelation: React.FC = () => {
   const { telemetry, activeWellId } = useDrillStore();
   const [correlationLabel, setCorrelationLabel] = useState('Demo correlation (API unavailable)');
+  const [correlationStatus, setCorrelationStatus] = useState<'pending' | 'online' | 'unavailable'>('pending');
   const currentMD = telemetry.measuredDepthM;
   useEffect(() => {
     let cancelled = false;
@@ -75,15 +76,22 @@ export const StratigraphicCorrelation: React.FC = () => {
       .map((formation) => ({ formation_name: formation.name, top_depth_m: formation.topM }));
     if (!formationTops.length) {
       setCorrelationLabel('Demo correlation (no formation tops reached)');
+      setCorrelationStatus('unavailable');
       return () => { cancelled = true; };
     }
     apiClient.correlateFormations(
       [{ md: 0, inclination: 0, azimuth: 0 }, { md: currentMD, inclination: 5, azimuth: 90 }],
       formationTops,
     ).then((response) => {
-      if (!cancelled) setCorrelationLabel(`Backend trajectory correlation • ${response.correlations.length} tops`);
+      if (!cancelled) {
+        setCorrelationLabel(`Backend trajectory correlation • ${response.correlations.length} tops`);
+        setCorrelationStatus('online');
+      }
     }).catch(() => {
-      if (!cancelled) setCorrelationLabel('Demo correlation (API unavailable)');
+      if (!cancelled) {
+        setCorrelationLabel('Demo correlation (API unavailable)');
+        setCorrelationStatus('unavailable');
+      }
     });
     return () => { cancelled = true; };
   }, [currentMD, activeWellId]);
@@ -252,7 +260,7 @@ export const StratigraphicCorrelation: React.FC = () => {
           <Activity className="w-3 h-3 text-cyan-400" />
           <span>{correlationLabel}: <strong className="text-emerald-400">94.2%</strong></span>
         </span>
-        <span className="text-amber-400 font-semibold">Correlation online</span>
+        <span className={correlationStatus === 'online' ? 'text-emerald-400' : 'text-amber-400'}>{correlationStatus === 'online' ? 'Correlation online' : correlationStatus === 'unavailable' ? 'API unavailable' : 'Correlation pending'}</span>
       </div>
     </div>
   );

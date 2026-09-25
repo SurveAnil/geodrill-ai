@@ -22,6 +22,16 @@ const DynamicWellMap = dynamic(
   }
 );
 
+const haversineDistanceKm = (from: { latitude: number; longitude: number }, to: { lat: number; lon: number }) => {
+  const earthRadiusKm = 6371;
+  const latDelta = (to.lat - from.latitude) * Math.PI / 180;
+  const lonDelta = (to.lon - from.longitude) * Math.PI / 180;
+  const latitude = from.latitude * Math.PI / 180;
+  const targetLatitude = to.lat * Math.PI / 180;
+  const a = Math.sin(latDelta / 2) ** 2 + Math.cos(latitude) * Math.cos(targetLatitude) * Math.sin(lonDelta / 2) ** 2;
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
 export const GeospatialPanel: React.FC = () => {
   const [selectedWell, setSelectedWell] = useState<OffsetWellItem | null>(null);
   const [wells, setWells] = useState<OffsetWellItem[]>([]);
@@ -46,7 +56,13 @@ export const GeospatialPanel: React.FC = () => {
       })).filter((item) => Number.isFinite(item.lat) && Number.isFinite(item.lon));
       setWells(mapped);
       setLoaded(true);
-    }).catch(() => { setWells(DEMO_OFFSET_WELLS); setApiUnavailable(true); setLoaded(true); });
+    }).catch(() => {
+      const fallbackWells = DEMO_OFFSET_WELLS.map((well) => ({ ...well, distanceKm: haversineDistanceKm(activeWellLocation, well) }))
+        .filter((well) => well.id !== activeWellId && well.distanceKm <= radiusKm);
+      setWells(fallbackWells);
+      setApiUnavailable(true);
+      setLoaded(true);
+    });
   }, [activeWellId, activeWellLocation.latitude, activeWellLocation.longitude, radiusKm]);
   const displayedWells = wells;
 

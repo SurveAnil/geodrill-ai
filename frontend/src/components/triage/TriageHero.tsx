@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   Crosshair,
   AlertTriangle,
@@ -151,25 +151,15 @@ const ScoreArc: React.FC<{ score: number; color: string }> = ({ score, color }) 
 /*  TRIAGE HERO — main export                                          */
 /* ================================================================== */
 export const TriageHero: React.FC = () => {
-  const { telemetry, risk, setRisk, acknowledgeCurrentRisk } = useDrillStore();
-  const [acknowledged, setAcknowledged] = useState(false);
+  const { telemetry, risk, acknowledgedAt, acknowledgeCurrentRisk } = useDrillStore();
+  const acknowledged = Boolean(acknowledgedAt);
   const theme = RISK_THEMES[risk.riskLevel];
   const isCritical = risk.riskLevel === 'critical';
-
-  useEffect(() => {
-    setAcknowledged(false);
-  }, [risk.predictedHazard, risk.riskScore]);
 
   const acknowledgeCurrentAlert = async () => {
     if (risk.alertId) {
       await apiClient.acknowledgeAlert(risk.alertId);
     }
-    setAcknowledged(true);
-    setRisk({
-      ...risk,
-      alertId: undefined,
-      immediateAction: 'Alert acknowledged. Continue monitoring telemetry and the approved well programme.',
-    });
     acknowledgeCurrentRisk();
   };
 

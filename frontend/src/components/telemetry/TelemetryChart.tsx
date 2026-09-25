@@ -202,11 +202,11 @@ export const TelemetryChart: React.FC = React.memo(() => {
   // Subscribe to store changes outside React render cycle for perf
   useEffect(() => {
     const current = useDrillStore.getState().telemetry;
-    setHistory(Array.from({ length: 7 }, (_, index) => ({
-      label: `${(current.measuredDepthM - (6 - index) * 0.2).toFixed(1)}m`,
+    setHistory([{
+      label: `${current.measuredDepthM.toFixed(1)}m`,
       spp: current.standpipePressure,
       rop: current.rop,
-    })));
+    }]);
     const unsub = useDrillStore.subscribe((state) => {
       tickCounterRef.current += 1;
       if (tickCounterRef.current % TICK_SAMPLE_RATE !== 0) return;

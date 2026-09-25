@@ -3,7 +3,8 @@ export function formatHazardLabel(value?: string) {
   return value
     .replace(/[_-]+/g, ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
-    .replace(/\b(At|And|Or|The)\b/g, (word) => word.toLowerCase());
+    .replace(/\b(At|And|Or|The)\b/g, (word) => word.toLowerCase())
+    .replace(/(\d[\d,]*(?:\.\d+)?)\s+M\b/g, '$1 m');
 }
 
 export const DEMO_OFFSET_WELLS = [
