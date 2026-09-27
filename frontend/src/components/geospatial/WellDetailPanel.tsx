@@ -21,10 +21,9 @@ import { WellLessons } from './WellLessons';
 interface WellDetailPanelProps {
   well: OffsetWellFeature;
   onClose: () => void;
-  embedded?: boolean;
 }
 
-export const WellDetailPanel: React.FC<WellDetailPanelProps> = ({ well, onClose, embedded = false }) => {
+export const WellDetailPanel: React.FC<WellDetailPanelProps> = ({ well, onClose }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'drilling' | 'documents'>('overview');
 
   const isHighRisk = well.riskLevel === 'high';
@@ -37,7 +36,7 @@ export const WellDetailPanel: React.FC<WellDetailPanelProps> = ({ well, onClose,
     : 'border-emerald-600/70 bg-emerald-950/80 text-emerald-200';
 
   return (
-    <div className={`flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-800 bg-[#0F172A] shadow-2xl ${embedded ? 'shrink-0' : 'h-full'}`}>
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-800 bg-[#0F172A] shadow-2xl">
       {/* Panel Header */}
       <div className="flex items-start justify-between border-b border-slate-800 bg-[#162032] p-4">
         <div>
@@ -119,7 +118,7 @@ export const WellDetailPanel: React.FC<WellDetailPanelProps> = ({ well, onClose,
       </div>
 
       {/* Panel Scrollable Body */}
-      <div className={`p-4 space-y-4 ${embedded ? 'flex-none' : 'min-h-0 flex-1 overflow-y-auto'}`}>
+      <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-4">
         {activeTab === 'overview' && (
           <>
             {/* Quick Metrics Grid */}

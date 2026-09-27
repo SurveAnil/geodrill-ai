@@ -5,7 +5,6 @@ import { Radar, Compass } from 'lucide-react';
 import { OffsetWellFeature, WellFiltersState } from './types';
 import { WellListItem } from './WellListItem';
 import { WellFilters } from './WellFilters';
-import { WellDetailPanel } from './WellDetailPanel';
 
 interface NearbyWellsPanelProps {
   wells: OffsetWellFeature[];
@@ -65,7 +64,7 @@ export const NearbyWellsPanel: React.FC<NearbyWellsPanelProps> = ({
                       : 'border border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700 hover:text-white'
                   }`}
                 >
-                  {r}k
+                  {r} km
                 </button>
               );
             })}
@@ -84,13 +83,6 @@ export const NearbyWellsPanel: React.FC<NearbyWellsPanelProps> = ({
       </div>
 
       <div data-offset-well-list className="min-h-0 flex-1 overflow-y-auto p-3 pt-2">
-        {selectedWell ? (
-          <WellDetailPanel
-            well={selectedWell}
-            onClose={() => onSelectWell(null)}
-            embedded
-          />
-        ) : (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
             <span>OFFSET WELL IDENTIFIER</span>
@@ -119,13 +111,12 @@ export const NearbyWellsPanel: React.FC<NearbyWellsPanelProps> = ({
               <WellListItem
                 key={well.id}
                 well={well}
-                isSelected={false}
+                isSelected={selectedWell?.id === well.id}
                 onSelect={onSelectWell}
               />
             ))
           )}
         </div>
-        )}
       </div>
     </div>
   );

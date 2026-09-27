@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useDrillStore } from '@/store/useDrillStore';
 import { OffsetWellFeature, WellFiltersState } from './types';
@@ -14,6 +14,7 @@ import { ActiveContextBar } from './ActiveContextBar';
 import { OffsetWellsMap } from './OffsetWellsMap';
 import { NearbyWellsPanel } from './NearbyWellsPanel';
 import { NearbyWellsSummary } from './NearbyWellsSummary';
+import { WellDetailPanel } from './WellDetailPanel';
 
 export const OffsetWellsWorkspace: React.FC = () => {
   const {
@@ -25,6 +26,17 @@ export const OffsetWellsWorkspace: React.FC = () => {
   const [radiusKm, setRadiusKm] = useState<number>(5);
   const [selectedWell, setSelectedWell] = useState<OffsetWellFeature | null>(null);
   const [panelVisible, setPanelVisible] = useState(true);
+  const selectedWellDialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!selectedWell) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelectedWell(null);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    selectedWellDialogRef.current?.focus();
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [selectedWell]);
 
   useEffect(() => {
     const updatePanelForViewport = () => {
@@ -138,6 +150,26 @@ export const OffsetWellsWorkspace: React.FC = () => {
           {panelVisible ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>
       </div>
+
+      {selectedWell && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/75 p-3 backdrop-blur-sm sm:p-6"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSelectedWell(null);
+          }}
+        >
+          <div
+            ref={selectedWellDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Details for ${selectedWell.name}`}
+            tabIndex={-1}
+            className="h-[min(82dvh,760px)] w-full max-w-4xl outline-none"
+          >
+            <WellDetailPanel well={selectedWell} onClose={() => setSelectedWell(null)} />
+          </div>
+        </div>
+      )}
 
       <NearbyWellsSummary
         wellsFoundCount={allInRadius.length}
