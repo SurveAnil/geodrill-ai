@@ -146,7 +146,10 @@ backend URL, create `frontend/.env.local`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_CARTO_API_KEY=your-carto-public-key
 ```
+
+The Carto key is used by the Offset Wells **MAP** basemap. Satellite and Terrain use Esri tiles and do not use this key. Restart the frontend after changing `.env.local`.
 
 The dashboard displays `API: CONNECTED` when the backend responds. If the API
 is unavailable, it explicitly displays `DEMO FALLBACK` and uses deterministic

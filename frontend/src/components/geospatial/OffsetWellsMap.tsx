@@ -45,6 +45,7 @@ export const OffsetWellsMap: React.FC<OffsetWellsMapProps> = ({
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapStyle, setMapStyle] = useState<MapStyleType>('dark');
   const [webglSupported, setWebglSupported] = useState<boolean>(true);
+  const cartoApiKey = process.env.NEXT_PUBLIC_CARTO_API_KEY?.trim();
   const latestDataRef = useRef({ wells, selectedWell, radiusKm, activeLocation, activeWellId, onSelectWell });
   latestDataRef.current = { wells, selectedWell, radiusKm, activeLocation, activeWellId, onSelectWell };
 
@@ -119,7 +120,9 @@ export const OffsetWellsMap: React.FC<OffsetWellsMapProps> = ({
             'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
             'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
             'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-          ],
+          ].map((tileUrl) => cartoApiKey
+            ? `${tileUrl}?key=${encodeURIComponent(cartoApiKey)}`
+            : tileUrl),
           tileSize: 256,
           attribution: 'CARTO / OpenStreetMap',
         },
@@ -139,7 +142,7 @@ export const OffsetWellsMap: React.FC<OffsetWellsMapProps> = ({
         },
       ],
     };
-  }, []);
+  }, [cartoApiKey]);
 
   // Initialize MapLibre
   useEffect(() => {
