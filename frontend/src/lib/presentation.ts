@@ -1,3 +1,5 @@
+import { DEMO_WELL_LOCATIONS } from './demoWellLocations';
+
 export function formatHazardLabel(value?: string) {
   if (!value) return 'Historical event';
   return value
@@ -8,9 +10,9 @@ export function formatHazardLabel(value?: string) {
 }
 
 export const DEMO_OFFSET_WELLS = [
-  { id: 'OIL-NWIS-02', name: 'OIL-NWIS-02', distanceKm: 1.8, hazard: 'Kick at 3,118 m', status: 'critical' as const, lat: 58.421, lon: 1.854, current_depth_m: 3185, current_formation: 'Northwind Sandstone', total_depth_m: 3410 },
-  { id: 'OIL-NWIS-03', name: 'OIL-NWIS-03', distanceKm: 3.1, hazard: 'Stuck Pipe at 3,096 m', status: 'warning' as const, lat: 58.396, lon: 1.831, current_depth_m: 3260, current_formation: 'Northwind Sandstone', total_depth_m: 3408 },
-  { id: 'OIL-NWIS-04', name: 'OIL-NWIS-04', distanceKm: 4.7, hazard: 'Mud Loss at 3,172 m', status: 'warning' as const, lat: 58.438, lon: 1.816, current_depth_m: 3340, current_formation: 'Northwind Sandstone', total_depth_m: 3425 },
+  { id: 'OIL-NWIS-02', name: 'OIL-NWIS-02', distanceKm: 0.8, hazard: 'Kick at 3,118 m', status: 'critical' as const, lat: DEMO_WELL_LOCATIONS['OIL-NWIS-02'].lat, lon: DEMO_WELL_LOCATIONS['OIL-NWIS-02'].lon, current_depth_m: 3185, current_formation: 'Northwind Sandstone', total_depth_m: 3410 },
+  { id: 'OIL-NWIS-03', name: 'OIL-NWIS-03', distanceKm: 1.8, hazard: 'Stuck Pipe at 3,096 m', status: 'warning' as const, lat: DEMO_WELL_LOCATIONS['OIL-NWIS-03'].lat, lon: DEMO_WELL_LOCATIONS['OIL-NWIS-03'].lon, current_depth_m: 3260, current_formation: 'Northwind Sandstone', total_depth_m: 3408 },
+  { id: 'OIL-NWIS-04', name: 'OIL-NWIS-04', distanceKm: 3.3, hazard: 'Mud Loss at 3,172 m', status: 'warning' as const, lat: DEMO_WELL_LOCATIONS['OIL-NWIS-04'].lat, lon: DEMO_WELL_LOCATIONS['OIL-NWIS-04'].lon, current_depth_m: 3340, current_formation: 'Northwind Sandstone', total_depth_m: 3425 },
 ];
 
 export const OFFSET_EVIDENCE = [

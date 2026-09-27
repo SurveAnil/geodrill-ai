@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { DEMO_WELL_FIELD_NAME, DEMO_WELL_LOCATIONS } from '@/lib/demoWellLocations';
 
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
 
@@ -191,10 +192,13 @@ const getRiskIdentity = (risk: RiskState) => risk.alertId || `${risk.riskLevel}:
 export const useDrillStore = create<DrillStore>((set, get) => ({
   activeWellId: 'OIL-NWIS-01',
   wellName: 'OIL-NWIS-01',
-  field: 'Northwind Field',
+  field: DEMO_WELL_FIELD_NAME,
   operator: 'Orion Inlet Limited',
   targetTotalDepthM: 3415.0,
-  activeWellLocation: { latitude: 58.4121, longitude: 1.8422 },
+  activeWellLocation: {
+    latitude: DEMO_WELL_LOCATIONS['OIL-NWIS-01'].lat,
+    longitude: DEMO_WELL_LOCATIONS['OIL-NWIS-01'].lon,
+  },
   operatingMode: 'DEMO',
   alertCount: 1,
 

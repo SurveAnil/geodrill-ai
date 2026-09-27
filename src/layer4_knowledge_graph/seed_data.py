@@ -16,24 +16,24 @@ SEED_SOURCE_DOC = "seed_oil_nwis_foundation_v1"
 
 SEED_WELLS = [
     WellHeader(
-        well_id="OIL-NWIS-01", operator="Orion Inlet Limited", field_name="Northwind Field",
+        well_id="OIL-NWIS-01", operator="Orion Inlet Limited", field_name="Upper Assam Demo Field",
         spud_date=date(2019, 4, 12), completion_date=date(2019, 6, 28),
-        latitude=58.4121, longitude=1.8422, total_depth_m=3415.0,
+        latitude=27.36, longitude=95.31, total_depth_m=3415.0,
     ),
     WellHeader(
-        well_id="OIL-NWIS-02", operator="Orion Inlet Limited", field_name="Northwind Field",
+        well_id="OIL-NWIS-02", operator="Orion Inlet Limited", field_name="Upper Assam Demo Field",
         spud_date=date(2017, 8, 4), completion_date=date(2017, 10, 19),
-        latitude=58.4198, longitude=1.8567, total_depth_m=3388.0,
+        latitude=27.365511, longitude=95.315207, total_depth_m=3388.0,
     ),
     WellHeader(
-        well_id="OIL-NWIS-03", operator="Orion Inlet Limited", field_name="Northwind Field",
+        well_id="OIL-NWIS-03", operator="Orion Inlet Limited", field_name="Upper Assam Demo Field",
         spud_date=date(2021, 2, 16), completion_date=date(2021, 4, 30),
-        latitude=58.4015, longitude=1.8694, total_depth_m=3520.0,
+        latitude=27.348553, longitude=95.297113, total_depth_m=3520.0,
     ),
     WellHeader(
-        well_id="OIL-NWIS-04", operator="Orion Inlet Limited", field_name="Northwind Field",
+        well_id="OIL-NWIS-04", operator="Orion Inlet Limited", field_name="Upper Assam Demo Field",
         spud_date=date(2022, 6, 8), completion_date=date(2022, 8, 21),
-        latitude=58.4262, longitude=1.8269, total_depth_m=3475.0,
+        latitude=27.389678, longitude=95.31, total_depth_m=3475.0,
     ),
 ]
 

@@ -7,6 +7,7 @@ import { Activity, AlertTriangle, Brain, BookOpen, ChevronLeft, ChevronRight, La
 import { TopNav } from './TopNav';
 import { apiClient } from '@/lib/api';
 import { useDrillStore } from '@/store/useDrillStore';
+import { DEMO_WELL_FIELD_NAME, DEMO_WELL_LOCATIONS } from '@/lib/demoWellLocations';
 
 const navigation = [
   { href: '/overview', label: 'Overview', icon: Activity },
@@ -35,7 +36,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           || wells.find((well) => well.well_id === activeWellId)
           || wells.find((well) => well.status === 'active')
           || wells[0];
-        if (active) setActiveWellContext(active);
+        if (active) {
+          const demoLocation = DEMO_WELL_LOCATIONS[active.well_id];
+          setActiveWellContext(demoLocation ? {
+            ...active,
+            latitude: demoLocation.lat,
+            longitude: demoLocation.lon,
+            field_name: DEMO_WELL_FIELD_NAME,
+          } : active);
+        }
         setBackendStatus('online');
       })
       .catch(() => {

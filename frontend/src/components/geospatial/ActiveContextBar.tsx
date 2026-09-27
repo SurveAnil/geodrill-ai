@@ -3,6 +3,7 @@
 import React from 'react';
 import { Target, Compass, Activity, Radio, ShieldAlert } from 'lucide-react';
 import { useDrillStore } from '@/store/useDrillStore';
+import { DEMO_WELL_LOCATIONS } from '@/lib/demoWellLocations';
 
 export const ActiveContextBar: React.FC = () => {
   const {
@@ -18,8 +19,8 @@ export const ActiveContextBar: React.FC = () => {
   const md = telemetry.measuredDepthM || 3108.0;
   const tvd = telemetry.trueVerticalDepthM || 3032.0;
   const formation = telemetry.currentFormation || 'Northwind Sandstone';
-  const lat = activeWellLocation?.latitude ?? 58.4121;
-  const lon = activeWellLocation?.longitude ?? 1.8422;
+  const lat = activeWellLocation?.latitude ?? DEMO_WELL_LOCATIONS['OIL-NWIS-01'].lat;
+  const lon = activeWellLocation?.longitude ?? DEMO_WELL_LOCATIONS['OIL-NWIS-01'].lon;
 
   return (
     <section

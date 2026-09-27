@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Circle, CircleMarker, Tooltip, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { OffsetWellItem } from './OffsetRadarTable';
+import { DEMO_WELL_LOCATIONS } from '@/lib/demoWellLocations';
 
 interface WellMapProps {
   selectedWell?: OffsetWellItem | null;
@@ -35,7 +36,7 @@ const MapSizeSynchronizer: React.FC = () => {
 export const WellMap: React.FC<WellMapProps> = ({
   selectedWell,
   wells = [],
-  activeCoordinates = [58.4121, 1.8422],
+  activeCoordinates = [DEMO_WELL_LOCATIONS['OIL-NWIS-01'].lat, DEMO_WELL_LOCATIONS['OIL-NWIS-01'].lon],
   activeWellId = 'OIL-NWIS-01',
   radiusKm = 10,
 }) => {
