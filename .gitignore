@@ -22,6 +22,9 @@ data/ingestion_uploads/
 frontend/node_modules/
 frontend/.next/
 frontend/out/
+frontend/public/maplibre-gl-worker.mjs
+frontend/public/maplibre-gl-shared.mjs
+frontend/tsconfig.tsbuildinfo
 
 # IDE and OS files
 .vscode/

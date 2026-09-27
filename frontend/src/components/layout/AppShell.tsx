@@ -43,11 +43,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       });
   }, [activeWellId, setActiveWellContext, setBackendStatus]);
   return (
-    <div className="min-h-screen bg-[#090D16] text-slate-100">
+    <div className="flex h-dvh flex-col overflow-hidden bg-[#090D16] text-slate-100">
       <TopNav onMenuOpen={() => setMobileOpen(true)} />
-      <div className="flex">
+      <div className="flex min-h-0 flex-1">
         {mobileOpen && <button aria-label="Close navigation" onClick={() => setMobileOpen(false)} className="fixed inset-0 z-[55] bg-slate-950/70 md:hidden" />}
-        <aside aria-label="Primary navigation" className={`${mobileOpen ? 'translate-x-0' : '-translate-x-full hidden md:block'} fixed inset-y-0 left-0 z-[60] w-72 border-r border-slate-800 bg-[#0B1120] pt-3 shadow-2xl transition-transform md:static md:translate-x-0 md:pt-0 ${collapsed ? 'md:w-16' : 'md:w-56'} shrink-0 min-h-[calc(100vh-64px)]`}>
+        <aside aria-label="Primary navigation" className={`${mobileOpen ? 'translate-x-0' : '-translate-x-full hidden md:block'} fixed inset-y-0 left-0 z-[60] w-72 overflow-hidden border-r border-slate-800 bg-[#0B1120] pt-3 shadow-2xl transition-transform md:static md:translate-x-0 md:pt-0 ${collapsed ? 'md:w-16' : 'md:w-56'} h-full shrink-0`}>
           <button onClick={() => setMobileOpen(false)} className="absolute right-3 top-3 rounded p-1 text-slate-400 md:hidden" aria-label="Close navigation"><X className="h-5 w-5" /></button>
           <div className="p-3 space-y-1">
             {navigation.map(({ href, label, icon: Icon }) => {
@@ -61,7 +61,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>
         </aside>
-        <main className="min-w-0 flex-1 p-4 lg:p-6">{children}</main>
+        <main className={`min-h-0 min-w-0 flex-1 p-3 lg:p-5 ${pathname === '/offset-wells' ? 'overflow-hidden' : 'overflow-y-auto'}`}>{children}</main>
       </div>
     </div>
   );
